@@ -7,4 +7,5 @@ interface VoiceRecorder {
     fun stopRecording()
     fun isRecording(): Boolean
     fun isPaused(): Boolean
+    fun getElapsedTimeMs(): Long
 }

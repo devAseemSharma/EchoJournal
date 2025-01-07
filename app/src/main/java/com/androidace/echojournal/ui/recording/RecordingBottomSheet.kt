@@ -25,11 +25,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -45,19 +48,24 @@ fun RecordingBottomSheet(
     val isRecording by recordingViewModel.isRecording.collectAsStateWithLifecycle()
     val isPaused by recordingViewModel.isPaused.collectAsStateWithLifecycle()
 
-    // Example: track recording duration in ViewModel, or pass it in
-    // For now, we'll hardcode "01:30:45"
-    val recordingDuration = "01:30:45"
+    val haptic = LocalHapticFeedback.current
+
+    // Collect elapsed time in ms
+    val elapsedMs by recordingViewModel.elapsedTimeMs.collectAsStateWithLifecycle()
+
+    // Format the elapsed time as HH:MM:SS
+    val recordingDuration = formatMillis(elapsedMs)
 
     // Pulse animation while recording (for the halo effect)
-    val infiniteTransition = rememberInfiniteTransition()
+    val infiniteTransition = rememberInfiniteTransition(label = "infiniteTransition")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1.2f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 600, easing = LinearOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
-        )
+        ),
+        label = "pulseScale"
     )
 
     // Outer Container
@@ -97,9 +105,10 @@ fun RecordingBottomSheet(
             IconButton(
                 onClick = {
                     if (isRecording || isPaused) {
-                        recordingViewModel.stopRecording()
+                        recordingViewModel.cancelRecording()
                     }
                     onCancel()
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 }
             ) {
                 // For an "X" icon, you can use Icons.Default.Close or your own vector asset
@@ -113,7 +122,8 @@ fun RecordingBottomSheet(
 
             // Center Circle with halo
             Box(
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(120.dp)
             ) {
                 // Halo effect while recording (only if not paused)
                 if (isRecording && !isPaused) {
@@ -132,12 +142,16 @@ fun RecordingBottomSheet(
                     onClick = {
                         // If recording, we might handle "Done" or "Stop"
                         // If paused, also finalize
-                        if (isPaused) {
+
+                        if (!isPaused && isRecording) {
                             recordingViewModel.stopRecording()
                             onDone()
+                        } else if (isPaused && !isRecording) {
+                            recordingViewModel.resumeRecording()
                         } else {
                             recordingViewModel.startRecording()
                         }
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     },
                     modifier = Modifier
                         .size(80.dp)
@@ -148,7 +162,7 @@ fun RecordingBottomSheet(
                 ) {
                     // Check icon (you can swap with your own)
                     Image(
-                        painter = if (isPaused) painterResource(R.drawable.check) else painterResource(
+                        painter = if (isRecording) painterResource(R.drawable.check) else painterResource(
                             R.drawable.mic
                         ),
                         contentDescription = "Done",
@@ -160,23 +174,41 @@ fun RecordingBottomSheet(
             // Pause Button (||)
             IconButton(
                 onClick = {
-                    if (isRecording && !isPaused) {
+                    if (!isPaused) {
                         // Pause
                         recordingViewModel.pauseRecording()
-                    } else if (isPaused) {
+                    } else if (!isRecording) {
                         // Resume
                         recordingViewModel.stopRecording()
                         onDone()
                     }
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 }
             ) {
                 val iconDesc = if (isPaused) "Resume" else "Pause"
                 Image(
-                    painter = if (isPaused) painterResource(R.drawable.ic_pause_small) else painterResource(R.drawable.ic_check_small),
+                    painter = if (isPaused) painterResource(R.drawable.ic_check_small) else painterResource(
+                        R.drawable.ic_pause_small
+                    ),
                     contentDescription = iconDesc,
                     modifier = Modifier.size(48.dp)
                 )
             }
         }
+    }
+}
+
+// Helper to format milliseconds to HH:MM:SS
+fun formatMillis(millis: Long): String {
+    val totalSeconds = millis / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    return if (hours > 0) {
+        String.format("%02d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        // If you prefer mm:ss when hours == 0
+        String.format("%02d:%02d", minutes, seconds)
     }
 }

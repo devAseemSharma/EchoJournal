@@ -8,8 +8,11 @@ import com.androidace.echojournal.db.RecordedAudio
 import com.androidace.echojournal.repository.RecordingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
@@ -30,6 +33,12 @@ class RecordingViewModel @Inject constructor(
     // The file that we are currently recording to
     private var currentFile: File? = null
 
+    // Elapsed recording time in ms
+    private val _elapsedTimeMs = MutableStateFlow(0L)
+    val elapsedTimeMs: StateFlow<Long> = _elapsedTimeMs
+
+    private var updateJob: Job? = null
+
     fun startRecording() {
         viewModelScope.launch {
             // Create an internal file
@@ -39,20 +48,24 @@ class RecordingViewModel @Inject constructor(
                 _isRecording.value = true
                 _isPaused.value = false
             }
+            // Start updating elapsed time
+            startUpdatingElapsedTime()
         }
     }
 
     fun pauseRecording() {
         viewModelScope.launch {
             voiceRecorder.pauseRecording()
-            _isPaused.value = voiceRecorder.isPaused()
+            _isPaused.value = true
+            _isRecording.value = false
         }
     }
 
     fun resumeRecording() {
         viewModelScope.launch {
             voiceRecorder.resumeRecording()
-            _isPaused.value = voiceRecorder.isPaused()
+            _isRecording.value = true
+            _isPaused.value = false
         }
     }
 
@@ -71,11 +84,34 @@ class RecordingViewModel @Inject constructor(
                 repository.insertRecording(recordedAudio)
             }
             currentFile = null
+            // Stop updating time
+            updateJob?.cancel()
+            _elapsedTimeMs.value = 0L
+        }
+    }
+
+    fun cancelRecording(){
+        viewModelScope.launch {
+            voiceRecorder.stopRecording()
+            _isRecording.value = false
+            _isPaused.value = false
+            currentFile?.delete()
+        }
+    }
+
+    private fun startUpdatingElapsedTime() {
+        updateJob?.cancel()
+        updateJob = viewModelScope.launch {
+            while (isActive) {
+                // Continuously read from recorder
+                _elapsedTimeMs.value = voiceRecorder.getElapsedTimeMs()
+                delay(500) // Update twice per second, adjust as needed
+            }
         }
     }
 
     private fun createInternalFile(context: Context): File {
         val internalDir = context.filesDir
-        return File.createTempFile("audio_", ".m4a", internalDir)
+        return File.createTempFile("audio_", ".mp3", internalDir)
     }
 }

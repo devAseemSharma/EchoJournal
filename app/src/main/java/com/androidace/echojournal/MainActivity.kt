@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -15,10 +16,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.androidace.echojournal.ui.home.HomeScreen
+import com.androidace.echojournal.ui.mood.MoodBottomSheet
 import com.androidace.echojournal.ui.recording.RecordingBottomSheet
 import com.androidace.echojournal.ui.theme.EchoJournalTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -45,26 +48,40 @@ fun MainRoot() {
     val coroutineScope = rememberCoroutineScope()
 
     // A shared boolean that any screen can toggle
-    var showSheet by remember { mutableStateOf(false) }
+    var showRecordingSheet by remember { mutableStateOf(false) }
+    var showMoodSheet by remember { mutableStateOf(false) }
 
     // The global bottom sheet, visible if showSheet == true
-    if (showSheet) {
+    if (showRecordingSheet) {
         ModalBottomSheet(
             sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.background,
             onDismissRequest = {
-                showSheet = false
+                showRecordingSheet = false
             }
         ) {
             RecordingBottomSheet(
                 onCancel = {
                     coroutineScope.launch { sheetState.hide() }
-                    showSheet = false
+                    showRecordingSheet = false
                 },
                 onDone = {
                     coroutineScope.launch { sheetState.hide() }
-                    showSheet = false
+                    showRecordingSheet = false
                 }
             )
+        }
+    }
+
+    if(showMoodSheet){
+        ModalBottomSheet(
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.background,
+            onDismissRequest = {
+                showMoodSheet = false
+            }
+        ) {
+            MoodBottomSheet()
         }
     }
 
@@ -77,7 +94,7 @@ fun MainRoot() {
             HomeScreen(
                 // Pass in a callback so HomeScreen can show the sheet
                 onShowRecordingSheet = {
-                    showSheet = true
+                    showRecordingSheet = true
                     coroutineScope.launch { sheetState.show() }
                 }
             )
