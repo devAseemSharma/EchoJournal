@@ -2,15 +2,23 @@ package com.androidace.echojournal.ui.home
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.provider.CalendarContract.Colors
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.core.content.ContextCompat
@@ -42,15 +50,18 @@ fun HomeScreen(
     // Example UI
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                if (hasAudioPermission) {
-                    onShowRecordingSheet.invoke()
-                }else {
-                    // Request permission if not granted
-                    audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                }
-            }) {
-                Icon(painterResource(R.drawable.mic), contentDescription = null)
+            FloatingActionButton(
+                shape = CircleShape,
+                onClick = {
+                    if (hasAudioPermission) {
+                        onShowRecordingSheet.invoke()
+                    } else {
+                        // Request permission if not granted
+                        audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                },
+                modifier = Modifier.background(MaterialTheme.colorScheme.onPrimary)) {
+                Icon(Icons.Filled.Add, contentDescription = "Add Recording", tint = Color.White)
             }
         }
     ) { paddingValues ->
