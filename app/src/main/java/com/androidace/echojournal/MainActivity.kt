@@ -49,7 +49,7 @@ fun MainRoot() {
 
     // A shared boolean that any screen can toggle
     var showRecordingSheet by remember { mutableStateOf(false) }
-    var showMoodSheet by remember { mutableStateOf(false) }
+    var showMoodSheet by remember { mutableStateOf(true) }
 
     // The global bottom sheet, visible if showSheet == true
     if (showRecordingSheet) {

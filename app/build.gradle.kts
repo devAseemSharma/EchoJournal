@@ -55,6 +55,9 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.ui.text.google.fonts)
 
+    //kotlin
+    implementation(libs.kotlinx.collections.immutable)
+
 
     //Dagger
     implementation(libs.hilt.android)
@@ -67,9 +70,9 @@ dependencies {
     implementation (libs.media3.ui)
 
     //Waveform
-    implementation ("com.github.lincollincol:compose-audiowaveform:1.1.1")
-    implementation ("com.github.lincollincol:amplituda:2.2.2")
-    implementation ("org.jodd:jodd-util:6.1.0")
+    implementation (libs.compose.audiowaveform)
+    implementation (libs.amplituda)
+    implementation (libs.jodd.util)
 
     //Room
     implementation(libs.room)
@@ -78,6 +81,7 @@ dependencies {
 
     //Splash
     implementation(libs.androidx.core.splashscreen)
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
