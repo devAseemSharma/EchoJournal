@@ -2,6 +2,7 @@ package com.androidace.echojournal.ui.recording
 
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.StartOffset
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -57,14 +59,47 @@ fun RecordingBottomSheet(
 
     // Pulse animation while recording (for the halo effect)
     val infiniteTransition = rememberInfiniteTransition(label = "infiniteTransition")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.2f,
+
+    val waveDuration = 1200  // total time for one ripple expansion
+    val ripple2Delay = 400
+
+    // First ripple expands from scale=0 to scale=1
+    val rippleInitialScale by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 600, easing = LinearOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseScale"
+            animation = tween(durationMillis = waveDuration, easing = LinearOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ), label = ""
+    )
+    val rippleInitAlpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = waveDuration, easing = LinearOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ), label = ""
+    )
+    // Second ripple also expands 0 -> 1,
+    // but we offset its start by half the duration (600ms)
+    val rippleSecondScale by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = waveDuration, easing = LinearOutSlowInEasing),
+            repeatMode = RepeatMode.Restart,
+            // Start after 600ms
+            initialStartOffset = StartOffset(ripple2Delay)
+        ), label = ""
+    )
+    val rippleSecondAlpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = waveDuration, easing = LinearOutSlowInEasing),
+            repeatMode = RepeatMode.Restart,
+            initialStartOffset = StartOffset(ripple2Delay)
+        ), label = ""
     )
 
     // Outer Container
@@ -111,10 +146,9 @@ fun RecordingBottomSheet(
                 }
             ) {
                 // For an "X" icon, you can use Icons.Default.Close or your own vector asset
-                Icon(
-                    imageVector = Icons.Default.Close,
+                Image(
+                    painter = painterResource(R.drawable.ic_cancel_recording),
                     contentDescription = "Cancel",
-                    tint = Color.Red.copy(alpha = 0.7f),
                     modifier = Modifier.size(48.dp)
                 )
             }
@@ -122,16 +156,34 @@ fun RecordingBottomSheet(
             // Center Circle with halo
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(120.dp)
+                modifier = Modifier.size(140.dp)
             ) {
                 // Halo effect while recording (only if not paused)
                 if (isRecording && !isPaused) {
                     Box(
                         modifier = Modifier
-                            .size(120.dp)
-                            .scale(pulseScale)
+                            .size(140.dp)
+                            .graphicsLayer {
+                                scaleX = rippleInitialScale
+                                scaleY = rippleInitialScale
+                                alpha = rippleInitAlpha
+                            }
                             .background(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
+                                shape = CircleShape
+                            )
+                    )
+                    // Ripple #2 (lighter or darker shade, or alpha variation)
+                    Box(
+                        modifier = Modifier
+                            .size(140.dp)
+                            .graphicsLayer {
+                                scaleX = rippleSecondScale
+                                scaleY = rippleSecondScale
+                                alpha = rippleSecondAlpha
+                            }
+                            .background(
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
                                 shape = CircleShape
                             )
                     )
