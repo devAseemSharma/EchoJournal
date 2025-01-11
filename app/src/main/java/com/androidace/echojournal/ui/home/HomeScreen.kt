@@ -57,7 +57,8 @@ import kotlin.math.sqrt
 
 @Composable
 fun HomeScreen(
-    onShowRecordingSheet: () -> Unit
+    onShowRecordingSheet: () -> Unit,
+    viewModel: RecordingViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -67,6 +68,12 @@ fun HomeScreen(
         Manifest.permission.RECORD_AUDIO
     ) == PackageManager.PERMISSION_GRANTED
 
+    // Whether to show the recording UI
+    var showRecording by remember { mutableStateOf(false) }
+
+    var onTapClicked by remember { mutableStateOf(false) }
+    var onLongPressClicked by remember { mutableStateOf(false) }
+
     // Launcher to request the RECORD_AUDIO permission
     val audioPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -74,14 +81,20 @@ fun HomeScreen(
         // Callback when user grants/denies the permission
         if (isGranted) {
             // If granted, display the bottom sheet
-            onShowRecordingSheet.invoke()
+            if (onTapClicked) {
+                onShowRecordingSheet.invoke()
+                onTapClicked = false
+            }
+            if (onLongPressClicked) {
+                showRecording = true
+                viewModel.startRecording()
+                onLongPressClicked = false
+            }
         } else {
             // Permission denied; handle accordingly (e.g., show a message)
         }
     }
 
-    // Whether to show the recording UI
-    var showRecording by remember { mutableStateOf(false) }
 
     // Example UI
     Scaffold(
@@ -94,10 +107,17 @@ fun HomeScreen(
                             detectTapGestures(
                                 // onLongPress triggers the "recording UI"
                                 onLongPress = {
+                                    onLongPressClicked = true
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    showRecording = true
+                                    if (hasAudioPermission) {
+                                        showRecording = true
+                                    } else {
+                                        // Request permission if not granted
+                                        audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                    }
                                 },
                                 onTap = {
+                                    onTapClicked = true
                                     if (hasAudioPermission) {
                                         onShowRecordingSheet.invoke()
                                     } else {
@@ -128,6 +148,8 @@ fun HomeScreen(
                     // Handle the user canceling
                     showRecording = false
                 },
+                hasAudioPermission = hasAudioPermission,
+                recordingViewModel = viewModel,
                 onDone = {
                     // If you had a "Done" button, handle it
                     showRecording = false
@@ -141,11 +163,14 @@ fun HomeScreen(
 fun RecordingUI(
     onCancel: () -> Unit,
     onDone: () -> Unit = {},
-    recordingViewModel: RecordingViewModel = hiltViewModel(),
+    hasAudioPermission: Boolean,
+    recordingViewModel: RecordingViewModel
 ) {
     val haptic = LocalHapticFeedback.current
     LaunchedEffect(Unit) {
-        recordingViewModel.startRecording()
+        if (hasAudioPermission) {
+            recordingViewModel.startRecording()
+        }
     }
 
     // A simple full-screen box overlay
