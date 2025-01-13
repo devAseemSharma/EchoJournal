@@ -20,8 +20,12 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import com.androidace.echojournal.ui.home.Home
 import com.androidace.echojournal.ui.home.HomeScreen
 import com.androidace.echojournal.ui.mood.MoodBottomSheet
+import com.androidace.echojournal.ui.newentry.NewEntry
+import com.androidace.echojournal.ui.newentry.NewEntryScreen
 import com.androidace.echojournal.ui.recording.RecordingBottomSheet
 import com.androidace.echojournal.ui.theme.EchoJournalTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -73,7 +77,7 @@ fun MainRoot() {
         }
     }
 
-    if(showMoodSheet){
+    if (showMoodSheet) {
         ModalBottomSheet(
             sheetState = sheetState,
             containerColor = MaterialTheme.colorScheme.background,
@@ -88,9 +92,9 @@ fun MainRoot() {
     // Your NavHost or main UI content
     NavHost(
         navController = navController,
-        startDestination = "home"
+        startDestination = Home
     ) {
-        composable("home") {
+        composable<Home> {
             HomeScreen(
                 // Pass in a callback so HomeScreen can show the sheet
                 onShowRecordingSheet = {
@@ -100,6 +104,10 @@ fun MainRoot() {
             )
         }
 
+        composable<NewEntry> {
+            val args = it.toRoute<NewEntry>()
+            NewEntryScreen(args.recordingPath)
+        }
 
         // Additional screens...
     }

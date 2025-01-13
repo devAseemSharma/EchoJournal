@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     id("com.google.devtools.ksp")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -57,6 +58,7 @@ dependencies {
 
     //kotlin
     implementation(libs.kotlinx.collections.immutable)
+    implementation(libs.kotlinx.serialization)
 
 
     //Dagger
