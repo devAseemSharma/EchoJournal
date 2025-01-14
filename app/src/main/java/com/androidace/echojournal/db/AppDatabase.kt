@@ -2,6 +2,9 @@ package com.androidace.echojournal.db
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import com.androidace.echojournal.db.dao.NewEntryDao
+import com.androidace.echojournal.db.dao.RecordedAudioDao
+import com.androidace.echojournal.db.dao.TopicDao
 
 @Database(
     entities = [RecordedAudio::class,

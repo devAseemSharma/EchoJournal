@@ -3,12 +3,11 @@ package com.androidace.echojournal.db
 import androidx.room.Embedded
 import androidx.room.Junction
 import androidx.room.Relation
-import com.androidace.echojournal.ui.newentry.NewEntry
 
 data class NewEntryWithTopics(
-    @Embedded val newEntry: NewEntry,
+    @Embedded val newEntry: NewEntryEntity,
     @Relation(
-        parentColumn = "id",
+        parentColumn = "newEntryId",
         entityColumn = "topicId",
         associateBy = Junction(NewEntryTopicCrossRef::class)
     )
@@ -19,7 +18,7 @@ data class TopicWithNewEntries(
     @Embedded val topic: Topic,
     @Relation(
         parentColumn = "topicId",
-        entityColumn = "id",
+        entityColumn = "newEntryId",
         associateBy = Junction(NewEntryTopicCrossRef::class)
     )
     val newEntries: List<NewEntryEntity>

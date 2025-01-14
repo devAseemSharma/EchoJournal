@@ -10,7 +10,7 @@ import androidx.room.Index
     foreignKeys = [
         ForeignKey(
             entity = NewEntryEntity::class,
-            parentColumns = ["id"],
+            parentColumns = ["newEntryId"],
             childColumns = ["newEntryId"],
             onDelete = ForeignKey.CASCADE
         ),

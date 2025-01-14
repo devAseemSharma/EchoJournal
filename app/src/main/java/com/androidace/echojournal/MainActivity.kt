@@ -98,8 +98,9 @@ fun MainRoot() {
             HomeScreen(
                 // Pass in a callback so HomeScreen can show the sheet
                 onShowRecordingSheet = {
-                    showRecordingSheet = true
-                    coroutineScope.launch { sheetState.show() }
+                    navController.navigate(NewEntry(""))
+                    /*showRecordingSheet = true
+                    coroutineScope.launch { sheetState.show() }*/
                 }
             )
         }

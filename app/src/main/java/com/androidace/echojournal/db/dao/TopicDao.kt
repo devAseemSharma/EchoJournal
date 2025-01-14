@@ -1,10 +1,12 @@
-package com.androidace.echojournal.db
+package com.androidace.echojournal.db.dao
 
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
+import com.androidace.echojournal.db.Topic
+import com.androidace.echojournal.db.TopicWithNewEntries
 
 @Dao
 interface TopicDao {

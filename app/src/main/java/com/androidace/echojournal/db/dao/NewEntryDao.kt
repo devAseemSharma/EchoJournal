@@ -1,9 +1,13 @@
-package com.androidace.echojournal.db
+package com.androidace.echojournal.db.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
+import com.androidace.echojournal.db.NewEntryEntity
+import com.androidace.echojournal.db.NewEntryTopicCrossRef
+import com.androidace.echojournal.db.NewEntryWithTopics
+import com.androidace.echojournal.db.Topic
 
 @Dao
 interface NewEntryDao {
@@ -17,7 +21,7 @@ interface NewEntryDao {
     suspend fun insertCrossRef(crossRef: NewEntryTopicCrossRef)
 
     @Transaction
-    @Query("SELECT * FROM new_entry WHERE id = :entryId")
+    @Query("SELECT * FROM new_entry WHERE newEntryId = :entryId")
     suspend fun getNewEntryWithTopics(entryId: Int): NewEntryWithTopics?
 
     @Transaction

@@ -1,7 +1,7 @@
 package com.androidace.echojournal.repository
 
 import com.androidace.echojournal.db.RecordedAudio
-import com.androidace.echojournal.db.RecordedAudioDao
+import com.androidace.echojournal.db.dao.RecordedAudioDao
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton

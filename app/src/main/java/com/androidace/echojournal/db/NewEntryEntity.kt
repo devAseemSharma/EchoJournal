@@ -12,16 +12,16 @@ import androidx.room.PrimaryKey
         ForeignKey(
             entity = RecordedAudio::class,
             parentColumns = arrayOf("id"),
-            childColumns = arrayOf("recording_id"),
+            childColumns = arrayOf("recordingId"),
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index(value = ["recording_id"])]
+    indices = [Index(value = ["recordingId"])]
 )
 data class NewEntryEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    @ColumnInfo(name = "recording_id") val recordingId: Int = 0,
+    @PrimaryKey(autoGenerate = true) @ColumnInfo(name = "newEntryId") val newEntryId: Int = 0,
+    @ColumnInfo(name = "recordingId") val recordingId: Int = 0,
     @ColumnInfo(name = "title") val title: String,
     @ColumnInfo(name = "description") val description: String,
 )

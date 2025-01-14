@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -36,13 +37,12 @@ internal fun NewEntryScreenContent(modifier: Modifier = Modifier) {
 
     Scaffold(
         topBar = {
-            TopAppBar(title = {
+            CenterAlignedTopAppBar(title = {
                 Text(
-                    text = stringResource(R.string.new_entry_title),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
+                    text = stringResource(R.string.new_entry_title)
                 )
             },
+
                 navigationIcon = {
                     Icon(painter = painterResource(R.drawable.ic_back), contentDescription = "Back")
                 }
