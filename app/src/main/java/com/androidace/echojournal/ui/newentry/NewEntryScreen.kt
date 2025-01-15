@@ -1,12 +1,20 @@
 package com.androidace.echojournal.ui.newentry
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -22,7 +30,9 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -39,6 +49,8 @@ import com.androidace.echojournal.ui.mood.MoodBottomSheet
 import com.androidace.echojournal.ui.mood.model.Mood
 import com.androidace.echojournal.ui.newentry.model.NewEntryScreenState
 import com.androidace.echojournal.ui.theme.titleStyle
+import com.androidace.echojournal.ui.theme.transparentTextFieldColors
+import com.linc.audiowaveform.AudioWaveform
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,9 +69,16 @@ fun NewEntryScreen(
         bottomSheetState = sheetState,
         onMoodCancelClick = {
 
-        }, onMoodConfirmClick = {
+        },
+        onMoodConfirmClick = {
 
-        })
+        },
+        onProgressChange = viewModel::updateProgress,
+        onPlayRecordClick = viewModel::updatePlaybackState,
+        onAiAssistantClick = {
+
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,6 +90,9 @@ internal fun NewEntryScreenContent(
     onValueChange: (String) -> Unit,
     onMoodCancelClick: () -> Unit,
     onMoodConfirmClick: (Mood) -> Unit,
+    onPlayRecordClick: () -> Unit,
+    onProgressChange: (Float) -> Unit,
+    onAiAssistantClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -122,41 +144,78 @@ internal fun NewEntryScreenContent(
             },
         ) {
             Column(modifier = Modifier.padding(it)) {
-                Row {
-                    IconButton(onClick = {
-                        coroutineScope.launch {
-                            bottomSheetState.show()
+                TextField(
+                    placeholder = {
+                        Text(
+                            newEntryScreenState.newEntryTitleHint, style = titleStyle.copy(
+                                color = MaterialTheme.colorScheme.outlineVariant
+                            )
+                        )
+                    },
+                    leadingIcon = {
+                        IconButton(onClick = {
+                            coroutineScope.launch {
+                                bottomSheetState.show()
+                            }
+                        }) {
+                            Image(
+                                painter = painterResource(R.drawable.ic_add_mood),
+                                contentDescription = "Add Mood"
+                            )
                         }
-                    }) {
+                    },
+                    value = newEntryScreenState.newEntryTitle,
+                    onValueChange = onValueChange,
+                    textStyle = titleStyle.copy(
+                        color = if (newEntryScreenState.newEntryTitleHint.isEmpty()) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.onSurface
+                    ),
+                    colors = transparentTextFieldColors()
+                )
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .weight(1.0f)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .background(
+                                color = MaterialTheme.colorScheme.inverseOnSurface,
+                                shape = RoundedCornerShape(45.dp)
+                            )
+                            .weight(0.9f)
+                    ) {
                         Image(
-                            painter = painterResource(R.drawable.ic_add_mood),
-                            contentDescription = "Add Mood"
+                            painter = painterResource(R.drawable.ic_play_record),
+                            contentDescription = "Play Record",
+                            modifier = Modifier
+                                .padding(start = 4.dp)
+                                .shadow(elevation = 3.dp, shape = CircleShape)
+                                .clickable {
+                                    onPlayRecordClick.invoke()
+                                }
+                        )
+                        AudioWaveform(
+                            amplitudes = newEntryScreenState.audioWaveFormState.amplitudes,
+                            onProgressChange = onProgressChange,
+                            modifier = Modifier.sizeIn(minWidth = 200.dp)
                         )
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    TextField(
-                        placeholder = {
-                            Text(
-                                newEntryScreenState.newEntryTitleHint, style = titleStyle.copy(
-                                    color = MaterialTheme.colorScheme.outlineVariant
-                                )
-                            )
-                        },
-                        value = newEntryScreenState.newEntryTitle,
-                        onValueChange = onValueChange,
-                        textStyle = titleStyle.copy(
-                            color = if (newEntryScreenState.newEntryTitleHint.isEmpty()) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.onSurface
-                        ),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            errorContainerColor = Color.Transparent
+                    Box(modifier = Modifier.weight(0.1f), contentAlignment = Alignment.Center) {
+                        Image(
+                            painter = painterResource(R.drawable.ic_ai_assistant),
+                            contentDescription = "AI Translate",
+                            modifier = Modifier
+                                .sizeIn(minWidth = 44.dp)
+                                .shadow(elevation = 3.dp, shape = CircleShape)
+                                .clickable {
+                                    onAiAssistantClick.invoke()
+                                }
                         )
-                    )
+                    }
+
                 }
             }
         }

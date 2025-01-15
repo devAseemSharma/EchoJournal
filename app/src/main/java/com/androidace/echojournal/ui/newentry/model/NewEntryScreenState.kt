@@ -10,5 +10,12 @@ data class NewEntryScreenState(
     val listTopics: List<Topic> = emptyList(),
     val selectedListTopics: List<Topic> = emptyList(),
     val descriptionText: String = "",
-    val descriptionTextHint: String = "Add Description..."
+    val descriptionTextHint: String = "Add Description...",
+    val audioWaveFormState: AudioWaveFormState = AudioWaveFormState()
+)
+
+data class AudioWaveFormState(
+    val amplitudes: List<Int> = emptyList(),
+    val isPlaying: Boolean = false,
+    val progress: Float = 0F
 )

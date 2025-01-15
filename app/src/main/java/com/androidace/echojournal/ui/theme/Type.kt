@@ -1,7 +1,10 @@
 package com.androidace.echojournal.ui.theme
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -56,4 +59,15 @@ val AppTypography = Typography(
 val titleStyle = TextStyle(
     fontSize = 26.sp,
     fontWeight = FontWeight.W500,
+)
+
+@Composable
+fun transparentTextFieldColors() = TextFieldDefaults.colors(
+    focusedContainerColor = Color.Transparent,
+    unfocusedContainerColor = Color.Transparent,
+    disabledContainerColor = Color.Transparent,
+    disabledIndicatorColor = Color.Transparent,
+    focusedIndicatorColor = Color.Transparent,
+    unfocusedIndicatorColor = Color.Transparent,
+    errorContainerColor = Color.Transparent
 )
