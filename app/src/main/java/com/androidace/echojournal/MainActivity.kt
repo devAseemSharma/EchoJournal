@@ -85,7 +85,11 @@ fun MainRoot() {
                 showMoodSheet = false
             }
         ) {
-            MoodBottomSheet()
+            MoodBottomSheet(onCancel = {
+
+            }, onConfirm = {
+
+            })
         }
     }
 

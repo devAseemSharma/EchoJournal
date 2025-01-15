@@ -35,14 +35,16 @@ import kotlinx.collections.immutable.PersistentList
 
 @Composable
 fun MoodBottomSheet(
+    onCancel: () -> Unit,
+    onConfirm: (Mood) -> Unit,
     viewModel: MoodBottomSheetViewModel = hiltViewModel()
 ) {
     val moodList = viewModel.moodList
     MoodBottomSheet(
         moodList =
         moodList,
-        onCancel = {},
-        onConfirm = {},
+        onCancel = onCancel,
+        onConfirm = onConfirm,
     )
 }
 
