@@ -25,10 +25,10 @@ fun EJScreen(
 @Composable
 private fun Content(
     content: @Composable () -> Unit,
-    bottomSheet: @Composable() (() -> Unit)?
+    bottomSheet: @Composable() (() -> Unit)
 ) {
     Box {
         content()
-        bottomSheet?.invoke()
+        bottomSheet()
     }
 }

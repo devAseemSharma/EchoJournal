@@ -1,10 +1,14 @@
 package com.androidace.echojournal.ui.theme
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 
 import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.text.googlefonts.Font
+import androidx.compose.ui.unit.sp
 import com.androidace.echojournal.R
 
 val provider = GoogleFont.Provider(
@@ -48,3 +52,8 @@ val AppTypography = Typography(
     labelSmall = baseline.labelSmall.copy(fontFamily = bodyFontFamily),
 )
 
+
+val titleStyle = TextStyle(
+    fontSize = 26.sp,
+    fontWeight = FontWeight.W500,
+)
