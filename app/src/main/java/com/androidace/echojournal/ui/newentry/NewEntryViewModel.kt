@@ -4,12 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.androidace.echojournal.audio.AudioPlaybackManager
 import com.androidace.echojournal.data.AudioRepository
+import com.androidace.echojournal.db.Topic
 import com.androidace.echojournal.model.LocalAudio
+import com.androidace.echojournal.repository.TopicRepository
 import com.androidace.echojournal.ui.common.UIStateHandlerImpl
 import com.androidace.echojournal.ui.common.UiStateHandler
 import com.androidace.echojournal.ui.newentry.model.NewEntryScreenState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -18,6 +21,7 @@ import javax.inject.Inject
 @HiltViewModel
 class NewEntryViewModel @Inject constructor(
     private val audioRepository: AudioRepository,
+    private val topicRepository: TopicRepository,
     private val playbackManager: AudioPlaybackManager,
     val uiStateHandlerImpl: UIStateHandlerImpl,
 ) : ViewModel(), UiStateHandler by uiStateHandlerImpl {
@@ -29,6 +33,28 @@ class NewEntryViewModel @Inject constructor(
 
     init {
         playbackManager.initializeController()
+        // Load all topics on initialization
+        viewModelScope.launch {
+            _newScreenState.value =
+                _newScreenState.value.copy(listTopics = topicRepository.getAllTopics())
+        }
+    }
+
+    fun createTopic(name: String, onTopicAdded:(Topic)->Unit) {
+        viewModelScope.launch {
+            val topic = topicRepository.insertTopicAndGet(Topic(name = name))
+            onTopicAdded.invoke(topic)
+            _newScreenState.value =
+                _newScreenState.value.copy(listTopics = topicRepository.getAllTopics())
+        }
+    }
+
+    fun removeTopic(topic: Topic) {
+        viewModelScope.launch {
+            topicRepository.deleteTopic(topic)
+            _newScreenState.value =
+                _newScreenState.value.copy(listTopics = topicRepository.getAllTopics())
+        }
     }
 
     override fun onCleared() {

@@ -26,6 +26,19 @@ interface TopicDao {
     @Query("SELECT * FROM topics")
     suspend fun getAllTopics(): List<Topic>
 
+    @Query("SELECT * FROM topics WHERE topicId = :id LIMIT 1")
+    suspend fun getTopicById(id: Long): Topic?
+
+    @Transaction
+    suspend fun insertTopicAndReturn(topic: Topic): Topic {
+        // 1) Insert the topic
+        val rowId = insertTopic(topic)
+
+        // 2) Fetch the newly inserted topic by ID
+        return getTopicById(rowId)
+            ?: throw IllegalStateException("Unable to find the inserted topic with ID $rowId")
+    }
+
     @Transaction
     @Query("SELECT * FROM topics WHERE topicId = :topicId")
     suspend fun getTopicWithEntries(topicId: Int): TopicWithNewEntries?
