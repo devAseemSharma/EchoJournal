@@ -273,7 +273,7 @@ internal fun NewEntryScreenContent(
                 Row(verticalAlignment = Alignment.Top) {
                     Text(
                         text = "#",
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp)
+                        modifier = Modifier.padding(start = 8.dp, end = 0.dp, top = 10.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     SelectedTopicsChipsFlow(
