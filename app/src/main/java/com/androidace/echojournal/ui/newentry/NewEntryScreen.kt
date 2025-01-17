@@ -2,26 +2,45 @@ package com.androidace.echojournal.ui.newentry
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ModalBottomSheet
@@ -29,6 +48,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,7 +61,10 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -246,120 +269,203 @@ internal fun NewEntryScreenContent(
 
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                TopicsAutoCompleteField(
-                    allTopics = newEntryScreenState.listTopics,
-                    onCreateNewTopic = { newTopic ->
-                        onCreateNewTopic.invoke(newTopic)
-
-                    },
-                    onTopicSelected = { selectedTopic ->
-                        // Avoid duplicates
-                        onTopicSelected.invoke(selectedTopic)
-                    })
-                Spacer(modifier = Modifier.height(16.dp))
                 // 2) The row (or flow) of selected topics
-                SelectedTopicsChipsFlow(
-                    selectedTopics = selectedTopics,
-                    onRemoveTopic = { topicToRemove ->
-                        selectedTopics.remove(topicToRemove)
-                    }
-                )
+                Row(verticalAlignment = Alignment.Top) {
+                    Text(
+                        text = "#",
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    SelectedTopicsChipsFlow(
+                        selectedTopics = selectedTopics,
+                        listTopics = newEntryScreenState.listTopics,
+                        onTopicSelected = onTopicSelected,
+                        onCreateNewTopic = onCreateNewTopic,
+                        onRemoveTopic = { topicToRemove ->
+                            selectedTopics.remove(topicToRemove)
+                        }
+                    )
+                }
 
             }
         }
     }
 }
 
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun SelectedTopicsChipsFlow(
+    listTopics: List<Topic>,
+    onCreateNewTopic: (String) -> Unit,
+    onTopicSelected: (Topic) -> Unit,
+    selectedTopics: List<Topic>,
+    onRemoveTopic: (Topic) -> Unit
+) {
+    val focusRequester = remember { FocusRequester() }
+    var text by remember { mutableStateOf("") }
+    var showPopup by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+    Column {
+        FlowRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    focusRequester.requestFocus()
+                },
+            verticalArrangement = Arrangement.Top
+        ) {
+            selectedTopics.forEach { topic ->
+                TopicChip(
+                    topic = topic,
+                    onRemove = { onRemoveTopic(topic) }
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+            BasicTextField(
+                value = text,
+                onValueChange = {
+                    text = it
+                    showPopup = true  // open the dropdown whenever the text changes
+                },
+                decorationBox = { innerTextField ->
+                    if (selectedTopics.isEmpty() && text.isEmpty()) {
+                        Text("Topic")
+                    }
+                    innerTextField()
+                },
+                textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+                modifier = Modifier
+                    .wrapContentWidth()
+                    .widthIn(min = 50.dp, max = 400.dp)
+                    .defaultMinSize(
+                        minHeight = 22.dp
+                    )
+                    .padding(vertical = 10.dp)
+                    .focusRequester(focusRequester)
+            )
+        }
+        TopicsAutoCompleteField(
+            allTopics = listTopics,
+            searchText = text,
+            showPopup = showPopup,
+            onCreateNewTopic = { newTopic ->
+                onCreateNewTopic.invoke(newTopic)
+                showPopup = false
+                text = ""
+                focusManager.clearFocus()
+            },
+            onTopicSelected = { selectedTopic ->
+                // Avoid duplicates
+                onTopicSelected.invoke(selectedTopic)
+                showPopup = false
+                text = ""
+                focusManager.clearFocus()
+            },
+            onClickOutside = {
+                showPopup = false
+                focusManager.clearFocus()
+            },
+            modifier = Modifier.padding(vertical = 10.dp)
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopicsAutoCompleteField(
     allTopics: List<Topic>,
+    searchText: String,
+    showPopup: Boolean,
     onCreateNewTopic: (String) -> Unit,
     onTopicSelected: (Topic) -> Unit,
+    onClickOutside: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-
-    var text by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
-
-
     // Filter the topic list in memory, or make DB calls if you prefer.
-    val filteredTopics = remember(text, allTopics) {
-        if (text.isBlank()) {
+    val filteredTopics = remember(searchText, allTopics) {
+        if (searchText.isBlank()) {
             emptyList()
         } else {
-            allTopics.filter { it.name.contains(text, ignoreCase = true) }
+            allTopics.filter { it.name.contains(searchText, ignoreCase = true) }
         }
     }
 
-    // This specialized Box helps manage the dropdown's open/close behavior.
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it }
-    ) {
-        TextField(
-            value = text,
-            onValueChange = {
-                text = it
-                expanded = true  // open the dropdown whenever the text changes
-            },
-            label = { Text("Enter topic") },
+    // 2) Show the popup below the TextField if `showPopup` is true
+    if (showPopup && searchText.isNotEmpty()) {
+        // A Box that covers the entire screen to detect outside clicks (dismiss on tap outside).
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(MenuAnchorType.PrimaryEditable)  // required for ExposedDropdownMenuBox anchor
-        )
-
-        ExposedDropdownMenu(
-            expanded = expanded && text.isNotEmpty(),
-            onDismissRequest = { expanded = false }
+                .fillMaxSize()
+                .background(Color.Transparent) // or a semi-transparent scrim if preferred
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) {
+                    // Dismiss popup when user taps outside
+                    onClickOutside.invoke()
+                },
+            contentAlignment = Alignment.TopCenter
         ) {
-            // 1) Show existing topics that match the query
-            filteredTopics.forEach { topic ->
-                DropdownMenuItem(
-                    onClick = {
-                        onTopicSelected(topic)
-                        text = topic.name
-                        expanded = false
-                    },
-                    text = {
+            // The actual popup "container"
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    // Constrain the height to a max of 300.dp
+                    .heightIn(max = 300.dp)
+                    // Make it scrollable if content grows beyond 300.dp
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // 2A) Show matching topics
+                filteredTopics.forEachIndexed { index, topic ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onTopicSelected(topic)
+
+                            }
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
                         Text(text = "# ${topic.name}")
                     }
-                )
-            }
 
-            // 2) If user typed something that’s not in the list, offer to create it
-            val isExactMatch = filteredTopics.any { it.name.equals(text, ignoreCase = true) }
-            if (!isExactMatch && text.isNotEmpty()) {
-                DropdownMenuItem(
-                    onClick = {
-                        onCreateNewTopic(text)
-                        text = ""
-                        expanded = false
-                    },
-                    text = {
-                        Text(text = "+ Create ‘$text’")
+                    // Optional: add a divider between items
+                    if (index < filteredTopics.lastIndex) {
+                        Divider()
                     }
-                )
-            }
-        }
-    }
-}
+                }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun SelectedTopicsChipsFlow(
-    selectedTopics: List<Topic>,
-    onRemoveTopic: (Topic) -> Unit
-) {
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        selectedTopics.forEach { topic ->
-            TopicChip(
-                topic = topic,
-                onRemove = { onRemoveTopic(topic) }
-            )
+                // 2B) If there's no exact match, offer to create a new topic
+                val isExactMatch = filteredTopics.any {
+                    it.name.equals(searchText, ignoreCase = true)
+                }
+                if (!isExactMatch && searchText.isNotEmpty()) {
+                    if (filteredTopics.isNotEmpty()) {
+                        HorizontalDivider()
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onCreateNewTopic(searchText)
+                            }
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        Text(text = "+ Create ‘$searchText’")
+                    }
+                }
+            }
         }
     }
 }
@@ -369,32 +475,25 @@ fun TopicChip(
     topic: Topic,
     onRemove: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .background(
-                color = Color(0xFFF2F2F7),  // a light gray background, or your choice
-                shape = RoundedCornerShape(16.dp)
-            )
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // "# Work"
+    AssistChip(
+        label = {
             Text(
                 text = "# ${topic.name}",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = Color.Black
                 )
             )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // The "X" icon (could also be an IconButton)
-            Text(
-                text = "x",
-                color = Color.Gray,
-                modifier = Modifier
-                    .clickable { onRemove() }
-            )
-        }
-    }
+        },
+        onClick = {},
+        trailingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = "Clear topic",
+                modifier = Modifier.clickable {
+                    onRemove()
+                })
+        },
+        shape = RoundedCornerShape(65.dp),
+        colors = AssistChipDefaults.assistChipColors(containerColor = Color(0XFFF2F2F7)),
+    )
 }
