@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -28,9 +29,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CardElevation
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenuItem
@@ -67,6 +72,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -78,6 +84,7 @@ import com.androidace.echojournal.ui.common.EJUIState
 import com.androidace.echojournal.ui.mood.MoodBottomSheet
 import com.androidace.echojournal.ui.mood.model.Mood
 import com.androidace.echojournal.ui.newentry.model.NewEntryScreenState
+import com.androidace.echojournal.ui.theme.bodyStyle
 import com.androidace.echojournal.ui.theme.titleStyle
 import com.androidace.echojournal.ui.theme.transparentTextFieldColors
 import com.linc.audiowaveform.AudioWaveform
@@ -273,6 +280,10 @@ internal fun NewEntryScreenContent(
                 Row(verticalAlignment = Alignment.Top) {
                     Text(
                         text = "#",
+                        style = bodyStyle.copy(
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        ),
                         modifier = Modifier.padding(start = 8.dp, end = 0.dp, top = 10.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -334,7 +345,10 @@ fun SelectedTopicsChipsFlow(
                     }
                     innerTextField()
                 },
-                textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+                textStyle = LocalTextStyle.current.copy(
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                ),
                 modifier = Modifier
                     .wrapContentWidth()
                     .widthIn(min = 50.dp, max = 400.dp)
@@ -408,61 +422,79 @@ fun TopicsAutoCompleteField(
             contentAlignment = Alignment.TopCenter
         ) {
             // The actual popup "container"
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    // Constrain the height to a max of 300.dp
-                    .heightIn(max = 300.dp)
-                    // Make it scrollable if content grows beyond 300.dp
-                    .verticalScroll(rememberScrollState())
+            Card(
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                colors = CardDefaults.cardColors()
+                    .copy(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier.padding(end = 16.dp)
+
             ) {
-                // 2A) Show matching topics
-                filteredTopics.forEachIndexed { index, topic ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onTopicSelected(topic)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        // Constrain the height to a max of 300.dp
+                        .heightIn(max = 300.dp)
+                        // Make it scrollable if content grows beyond 300.dp
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    // 2A) Show matching topics
+                    filteredTopics.forEachIndexed { index, topic ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onTopicSelected(topic)
 
-                            }
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                    ) {
-                        Text(text = "# ${topic.name}")
+                                }
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                text = "#",
+                                style = bodyStyle.copy(
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.primary.copy(0.5f)
+                                ),
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = topic.name, style = bodyStyle.copy(
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            )
+                        }
                     }
 
-                    // Optional: add a divider between items
-                    if (index < filteredTopics.lastIndex) {
-                        Divider()
+                    // 2B) If there's no exact match, offer to create a new topic
+                    val isExactMatch = filteredTopics.any {
+                        it.name.equals(searchText, ignoreCase = true)
                     }
-                }
-
-                // 2B) If there's no exact match, offer to create a new topic
-                val isExactMatch = filteredTopics.any {
-                    it.name.equals(searchText, ignoreCase = true)
-                }
-                if (!isExactMatch && searchText.isNotEmpty()) {
-                    if (filteredTopics.isNotEmpty()) {
-                        HorizontalDivider()
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onCreateNewTopic(searchText)
-                            }
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                    ) {
-                        Text(text = "+ Create ‘$searchText’")
+                    if (!isExactMatch && searchText.isNotEmpty()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onCreateNewTopic(searchText)
+                                }
+                                .padding(horizontal = 12.dp, vertical = 12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Add,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(end = 5.dp),
+                                contentDescription = "Add topic"
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Create ‘$searchText’", style = bodyStyle.copy(
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        }
                     }
                 }
             }
@@ -477,22 +509,40 @@ fun TopicChip(
 ) {
     AssistChip(
         label = {
-            Text(
-                text = "# ${topic.name}",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.Black
+            Row(
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "#",
+                    style = bodyStyle.copy(
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.primary.copy(0.5f)
+                    ),
                 )
-            )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = topic.name,
+                    style = bodyStyle.copy(
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                )
+            }
+
         },
         onClick = {},
         trailingIcon = {
             Icon(
                 imageVector = Icons.Filled.Close,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                 contentDescription = "Clear topic",
-                modifier = Modifier.clickable {
-                    onRemove()
-                })
+                modifier = Modifier
+                    .size(16.dp)
+                    .clickable {
+                        onRemove()
+                    })
         },
+        border = AssistChipDefaults.assistChipBorder(enabled = false, borderWidth = 0.dp),
         shape = RoundedCornerShape(65.dp),
         colors = AssistChipDefaults.assistChipColors(containerColor = Color(0XFFF2F2F7)),
     )

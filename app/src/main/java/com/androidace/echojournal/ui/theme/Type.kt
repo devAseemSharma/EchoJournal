@@ -61,6 +61,12 @@ val titleStyle = TextStyle(
     fontWeight = FontWeight.W500,
 )
 
+val bodyStyle = TextStyle(
+    fontSize = 14.sp,
+    fontWeight = FontWeight.W500,
+    lineHeight = 20.sp
+)
+
 @Composable
 fun transparentTextFieldColors() = TextFieldDefaults.colors(
     focusedContainerColor = Color.Transparent,
