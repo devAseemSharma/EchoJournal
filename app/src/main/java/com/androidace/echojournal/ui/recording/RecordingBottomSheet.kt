@@ -35,12 +35,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidace.echojournal.R
+import com.androidace.echojournal.db.RecordedAudio
+import com.androidace.echojournal.util.formatMillis
 
 @Composable
 fun RecordingBottomSheet(
     recordingViewModel: RecordingViewModel = hiltViewModel(),
     onCancel: () -> Unit = {},
-    onDone: () -> Unit = {}
+    onDone: (RecordedAudio?) -> Unit = {}
 ) {
     val isRecording by recordingViewModel.isRecording.collectAsStateWithLifecycle()
     val isPaused by recordingViewModel.isPaused.collectAsStateWithLifecycle()
@@ -191,8 +193,9 @@ fun RecordingBottomSheet(
                         // If paused, also finalize
 
                         if (!isPaused && isRecording) {
-                            recordingViewModel.stopRecording()
-                            onDone()
+                            recordingViewModel.stopRecording {
+                                onDone(it)
+                            }
                         } else if (isPaused && !isRecording) {
                             recordingViewModel.resumeRecording()
                         } else {
@@ -226,8 +229,9 @@ fun RecordingBottomSheet(
                         recordingViewModel.pauseRecording()
                     } else if (!isRecording) {
                         // Resume
-                        recordingViewModel.stopRecording()
-                        onDone()
+                        recordingViewModel.stopRecording {
+                            onDone(it)
+                        }
                     }
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 }
@@ -242,20 +246,5 @@ fun RecordingBottomSheet(
                 )
             }
         }
-    }
-}
-
-// Helper to format milliseconds to HH:MM:SS
-fun formatMillis(millis: Long): String {
-    val totalSeconds = millis / 1000
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-
-    return if (hours > 0) {
-        String.format("%02d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        // If you prefer mm:ss when hours == 0
-        String.format("%02d:%02d", minutes, seconds)
     }
 }

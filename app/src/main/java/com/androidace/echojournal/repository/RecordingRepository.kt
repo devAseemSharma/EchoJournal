@@ -7,12 +7,13 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class RecordingRepository@Inject constructor(
+class RecordingRepository @Inject constructor(
     private val dao: RecordedAudioDao
 ) {
     fun getAllRecordings(): Flow<List<RecordedAudio>> = dao.getAll()
 
-    suspend fun insertRecording(recordedAudio: RecordedAudio) {
-        dao.insert(recordedAudio)
+    suspend fun insertRecording(recordedAudio: RecordedAudio): RecordedAudio? {
+        return dao.insertRecordingAndReturnRecording(recordedAudio)
     }
+
 }

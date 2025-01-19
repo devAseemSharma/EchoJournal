@@ -2,146 +2,117 @@ package com.androidace.echojournal.audio
 
 import android.content.ComponentName
 import android.content.Context
+import android.media.MediaPlayer
 import android.net.Uri
-import android.os.Handler
-import android.os.Looper
-import androidx.media3.common.Player
+import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import com.androidace.echojournal.model.LocalAudio
-import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.MoreExecutors
+import com.androidace.echojournal.db.RecordedAudio
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.guava.await
+import kotlinx.coroutines.job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.UUID
 import javax.inject.Inject
 
 class AudioPlaybackManager @Inject constructor(
     @ApplicationContext private val context: Context
-): Player.Listener {
+) : MediaPlayer.OnPreparedListener {
     companion object {
         private const val PLAYER_POSITION_UPDATE_TIME = 500L
     }
-    private var _events = MutableSharedFlow<Event>()
-    val events = _events.asSharedFlow()
 
-    private var lastEmittedPosition: Long = 0
-    private var currentMediaItem: MediaItem? = null
-    private var controllerFuture: ListenableFuture<MediaController>? = null
-    private val controller: MediaController?
-        get() = if (controllerFuture?.isDone == true) controllerFuture?.get() else null
+    private var lastEmittedPosition: Int = 0
+    private var mediaPlayer: MediaPlayer? = null
+    private val scope = CoroutineScope(Dispatchers.IO)
 
-    private var handler: Handler? = null
-
-    private val playerPositionRunnable = object : Runnable {
-        override fun run() {
-            val playbackPosition = controller?.currentPosition ?: 0
-            // Emit only new player position
-            if(playbackPosition != lastEmittedPosition) {
-                sendEvent(Event.PositionChanged(playbackPosition))
-                lastEmittedPosition = playbackPosition
-            }
-            handler?.postDelayed(this, PLAYER_POSITION_UPDATE_TIME)
-        }
-    }
-
-    override fun onIsPlayingChanged(isPlaying: Boolean) {
-        super.onIsPlayingChanged(isPlaying)
-        sendEvent(Event.PlayingChanged(isPlaying))
-    }
-
-    override fun onPlaybackStateChanged(playbackState: Int) {
-        super.onPlaybackStateChanged(playbackState)
-        if(playbackState == Player.STATE_ENDED) {
-            controller?.pause()
-            controller?.seekTo(0)
-        }
-    }
-
-    fun setAudio(localAudio: LocalAudio) {
-        setAudio(localAudio.uri, localAudio.nameWithoutExtension)
-    }
-
-    fun setAudio(uri: Uri, title: String) {
-        setAudio(getMediaItem(uri, title))
-    }
-
-    fun setAudio(mediaItem: MediaItem) {
-        val controllerItemId = controller?.currentMediaItem?.mediaId
-        currentMediaItem = mediaItem
-        if(controllerFuture?.isDone == false || controllerItemId == mediaItem.mediaId) {
-            return
-        }
-        controller?.setMediaItem(mediaItem)
-        controller?.prepare()
-    }
+    // SharedFlow for position updates
+    // replay=1 ensures the latest emitted value is cached for new collectors
+    private val _progressFlow = MutableSharedFlow<Event>(replay = 1)
+    val progressFlow: SharedFlow<Event> = _progressFlow.asSharedFlow()
 
     fun clearAudio() {
-        controller?.stop()
-        controller?.clearMediaItems()
-        currentMediaItem = null
+        mediaPlayer?.stop()
+        mediaPlayer?.release()
+        lastEmittedPosition = 0
+    }
+
+    fun initializePlayer(audio: RecordedAudio) {
+        MediaPlayer.create(context, Uri.parse(audio.fileUri)).apply {
+            mediaPlayer = this
+            setOnPreparedListener(this@AudioPlaybackManager)
+            setOnCompletionListener {
+                sendEvent(Event.OnPlayingComplete)
+                lastEmittedPosition = 0
+                seekTo(lastEmittedPosition)
+            }
+        }
     }
 
     fun play() {
-        controller?.play()
+        mediaPlayer?.start()
+        if (lastEmittedPosition > 0) {
+            mediaPlayer?.seekTo(lastEmittedPosition)
+        }
+        scope.launch {
+            startObservingProgress(200)
+        }
     }
 
+    fun getMediaPlayer() = mediaPlayer
+
     fun pause() {
-        controller?.pause()
+        mediaPlayer?.pause()
+        lastEmittedPosition = mediaPlayer?.currentPosition ?: 0
     }
 
     fun seekTo(position: Long) {
-        controller?.seekTo(position)
-    }
-
-    fun initializeController() {
-        controllerFuture = MediaController.Builder(
-            context,
-            SessionToken(context, ComponentName(context, PlaybackService::class.java))
-        ).buildAsync()
-        controllerFuture?.addListener(::onControllerCreated, MoreExecutors.directExecutor())
+        mediaPlayer?.seekTo(position.toInt())
     }
 
     fun releaseController() {
         clearAudio()
-        controller?.removeListener(this)
-        controllerFuture?.let(MediaController::releaseFuture)
-        controllerFuture = null
-        handler?.removeCallbacks(playerPositionRunnable)
-        handler = null
     }
 
-    private fun getMediaItem(uri: Uri, title: String): MediaItem {
-        val mmd = MediaMetadata.Builder()
-            .setTitle(title)
-            .build()
-        val rmd = MediaItem.RequestMetadata.Builder()
-            .setMediaUri(uri)
-            .build()
-        return MediaItem.Builder()
-            .setMediaId(UUID.randomUUID().toString())
-            .setMediaMetadata(mmd)
-            .setRequestMetadata(rmd)
-            .build()
-    }
+    /**
+     * Start polling the current position if the controller is active and playing.
+     * Emit updates into the SharedFlow. Typically called from a coroutine in your ViewModel.
+     */
+    private suspend fun startObservingProgress(pollIntervalMs: Long = 200) {
+        val controller = mediaPlayer ?: return
 
-    private fun onControllerCreated() {
-        currentMediaItem?.let(::setAudio)
-        handler = Handler(Looper.getMainLooper())
-        handler?.postDelayed(playerPositionRunnable, PLAYER_POSITION_UPDATE_TIME)
-        controller?.addListener(this)
+        while (controller.isPlaying) {
+            val position = controller.currentPosition
+            _progressFlow.emit(Event.PositionChanged(position.toLong()))
+            delay(pollIntervalMs)
+        }
     }
 
     private fun sendEvent(event: Event) {
-        runBlocking { _events.emit(event) }
+        runBlocking {
+            _progressFlow.emit(event)
+        }
     }
 
     sealed interface Event {
         data class PositionChanged(val position: Long) : Event
         data class PlayingChanged(val isPlaying: Boolean) : Event
+        data object OnPlayingComplete : Event
+    }
+
+    override fun onPrepared(mediaPlayer: MediaPlayer?) {
+
     }
 }

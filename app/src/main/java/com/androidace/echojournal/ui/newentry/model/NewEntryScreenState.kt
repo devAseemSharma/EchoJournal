@@ -17,5 +17,7 @@ data class NewEntryScreenState(
 data class AudioWaveFormState(
     val amplitudes: List<Int> = emptyList(),
     val isPlaying: Boolean = false,
-    val progress: Float = 0F
+    val progress: Float = 0F,
+    val totalDuration: String = "00:00",
+    val seekDuration: String = "00:00"
 )

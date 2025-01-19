@@ -84,6 +84,8 @@ dependencies {
     //Splash
     implementation(libs.androidx.core.splashscreen)
 
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.7.3")
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

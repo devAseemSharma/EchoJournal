@@ -1,28 +1,26 @@
 package com.androidace.echojournal.data
 
+import com.androidace.echojournal.db.RecordedAudio
+import com.androidace.echojournal.db.dao.RecordedAudioDao
 import com.androidace.echojournal.model.LocalAudio
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
-class AudioRepository  @Inject constructor(
-    private val localMediaDataSource: LocalMediaDataSource,
+class AudioRepository @Inject constructor(
+    private val localMediaDataSource: RecordedAudioDao,
     private val audioManager: AudioManager,
     private val ioDispatcher: CoroutineDispatcher
 ) {
 
-    suspend fun loadAudioFiles(query: String): List<LocalAudio> = withContext(ioDispatcher) {
-        return@withContext localMediaDataSource.loadAudioFiles(query)
-    }
-
-    suspend fun loadAudioByContentId(id: String): LocalAudio? = withContext(ioDispatcher) {
-        return@withContext localMediaDataSource.loadAudioById(id)
+    suspend fun loadAudioByContentId(id: Int): RecordedAudio? = withContext(ioDispatcher) {
+        return@withContext localMediaDataSource.getRecordedAudioById(id.toLong())
     }
 
     suspend fun loadAudioAmplitudes(
-        localAudio: LocalAudio
+        localAudio: RecordedAudio
     ): List<Int> = withContext(ioDispatcher) {
-        return@withContext audioManager.getAmplitudes(localAudio.path)
+        return@withContext audioManager.getAmplitudes(localAudio.fileUri)
     }
 
 }

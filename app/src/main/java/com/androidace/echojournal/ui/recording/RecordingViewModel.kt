@@ -22,7 +22,7 @@ class RecordingViewModel @Inject constructor(
     private val voiceRecorder: VoiceRecorder,
     private val repository: RecordingRepository,
     @ApplicationContext val context: Context,
-): ViewModel() {
+) : ViewModel() {
     // UI states
     private val _isRecording = MutableStateFlow(false)
     val isRecording: StateFlow<Boolean> get() = _isRecording
@@ -38,6 +38,8 @@ class RecordingViewModel @Inject constructor(
     val elapsedTimeMs: StateFlow<Long> = _elapsedTimeMs
 
     private var updateJob: Job? = null
+
+    var savedRecordingAudio: RecordedAudio? = null
 
     fun startRecording() {
         viewModelScope.launch {
@@ -69,20 +71,22 @@ class RecordingViewModel @Inject constructor(
         }
     }
 
-    fun stopRecording() {
+    fun stopRecording(onComplete: (RecordedAudio?) -> Unit) {
         viewModelScope.launch {
+            // Once stopped, insert a record in DB
+
+            onComplete.invoke(
+                repository.insertRecording(
+                    RecordedAudio(
+                        fileUri = currentFile?.absolutePath ?: "",
+                        timestamp = voiceRecorder.getElapsedTimeMs()
+                    )
+                )
+            )
             voiceRecorder.stopRecording()
             _isRecording.value = false
             _isPaused.value = false
 
-            // Once stopped, insert a record in DB
-            currentFile?.let { file ->
-                val recordedAudio = RecordedAudio(
-                    fileUri = file.absolutePath, // or a URI string if you convert it
-                    timestamp = System.currentTimeMillis()
-                )
-                repository.insertRecording(recordedAudio)
-            }
             currentFile = null
             // Stop updating time
             updateJob?.cancel()
@@ -90,11 +94,12 @@ class RecordingViewModel @Inject constructor(
         }
     }
 
-    fun cancelRecording(){
+    fun cancelRecording() {
         viewModelScope.launch {
             voiceRecorder.stopRecording()
             _isRecording.value = false
             _isPaused.value = false
+            savedRecordingAudio = null
             currentFile?.delete()
         }
     }

@@ -195,8 +195,9 @@ fun RecordingUI(
             )
             // Recording "button" or text
             PulseRecordingButton {
-                recordingViewModel.stopRecording()
-                onDone.invoke()
+                recordingViewModel.stopRecording{
+                    onDone.invoke()
+                }
             }
         }
     }

@@ -1,4 +1,5 @@
 package com.androidace.echojournal.ui.newentry
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -46,6 +47,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -62,6 +64,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -82,7 +85,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewEntryScreen(
-    recordingFilePath: String?,
+    newEntry: NewEntry?,
     viewModel: NewEntryViewModel = hiltViewModel()
 ) {
     val eJUiState by viewModel.eJUiStateFlow.collectAsStateWithLifecycle()
@@ -90,6 +93,10 @@ fun NewEntryScreen(
     val newEntryScreenState by viewModel.newScreenState.collectAsStateWithLifecycle()
 // The list of selected topics
     val selectedTopics = remember { mutableStateListOf<Topic>() }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadAudio(newEntry?.id ?: 0)
+    }
 
     NewEntryScreenContent(
         ejUiState = eJUiState,
@@ -231,10 +238,12 @@ internal fun NewEntryScreenContent(
                                 color = MaterialTheme.colorScheme.inverseOnSurface,
                                 shape = RoundedCornerShape(45.dp)
                             )
-                            .weight(0.85f)
+                            .weight(0.88f)
                     ) {
                         Image(
-                            painter = painterResource(R.drawable.ic_play_record),
+                            painter = if (!newEntryScreenState.audioWaveFormState.isPlaying) painterResource(
+                                R.drawable.ic_play_record
+                            ) else painterResource(R.drawable.ic_pause_small),
                             contentDescription = "Play Record",
                             modifier = Modifier
                                 .padding(start = 4.dp)
@@ -242,15 +251,28 @@ internal fun NewEntryScreenContent(
                                 .clickable {
                                     onPlayRecordClick.invoke()
                                 }
+                                .weight(0.15f)
                         )
+                        Spacer(modifier = Modifier.width(4.dp))
                         AudioWaveform(
                             amplitudes = newEntryScreenState.audioWaveFormState.amplitudes,
                             onProgressChange = onProgressChange,
-                            modifier = Modifier.sizeIn(minWidth = 200.dp)
+                            progress = newEntryScreenState.audioWaveFormState.progress,
+                            spikePadding = 2.dp,
+                            spikeWidth = 4.dp,
+                            spikeRadius = 3.dp,
+                            modifier = Modifier
+                                .heightIn(min = 25.dp, max = 48.dp)
+                                .padding(vertical = 10.dp)
+                                .weight(1f)
                         )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.weight(0.35f)) {
+                            TimeDuration(newEntryScreenState)
+                        }
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Box(modifier = Modifier.weight(0.15f), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.weight(0.12f), contentAlignment = Alignment.Center) {
                         Image(
                             painter = painterResource(R.drawable.ic_ai_assistant),
                             contentDescription = "AI Translate",
@@ -290,6 +312,18 @@ internal fun NewEntryScreenContent(
             }
         }
     }
+}
+
+@Composable
+fun TimeDuration(state: NewEntryScreenState) {
+    Text(
+        "${state.audioWaveFormState.seekDuration}/${state.audioWaveFormState.totalDuration}",
+        style = bodyStyle.copy(
+            fontSize = 12.sp,
+            fontWeight = FontWeight.W400,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+    )
 }
 
 
