@@ -1,7 +1,6 @@
 [versions]
 agp = "8.7.3"
 amplituda = "2.2.2"
-composeAudiowaveform = "1.1.1"
 coreSplashscreen = "1.0.1"
 joddUtil = "6.1.0"
 kotlin = "2.1.0"
@@ -26,7 +25,6 @@ uiTextGoogleFonts = "1.7.6"
 amplituda = { module = "com.github.lincollincol:amplituda", version.ref = "amplituda" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
-compose-audiowaveform = { module = "com.github.lincollincol:compose-audiowaveform", version.ref = "composeAudiowaveform" }
 jodd-util = { module = "org.jodd:jodd-util", version.ref = "joddUtil" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

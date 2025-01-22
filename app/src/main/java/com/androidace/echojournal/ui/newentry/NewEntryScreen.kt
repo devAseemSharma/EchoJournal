@@ -32,6 +32,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -60,6 +62,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -70,6 +73,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidace.echojournal.R
+import com.androidace.echojournal.audio.waveform.AudioWaveform
 import com.androidace.echojournal.db.Topic
 import com.androidace.echojournal.ui.common.EJScreen
 import com.androidace.echojournal.ui.common.EJUIState
@@ -79,7 +83,6 @@ import com.androidace.echojournal.ui.newentry.model.NewEntryScreenState
 import com.androidace.echojournal.ui.theme.bodyStyle
 import com.androidace.echojournal.ui.theme.titleStyle
 import com.androidace.echojournal.ui.theme.transparentTextFieldColors
-import com.linc.audiowaveform.AudioWaveform
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -128,7 +131,9 @@ fun NewEntryScreen(
             if (!selectedTopics.contains(it)) {
                 selectedTopics.add(it)
             }
-        }
+        },
+        onCancel = {},
+        onSave = {}
     )
 }
 
@@ -147,6 +152,8 @@ internal fun NewEntryScreenContent(
     onAiAssistantClick: () -> Unit,
     onCreateNewTopic: (String) -> Unit,
     onTopicSelected: (Topic) -> Unit,
+    onCancel: () -> Unit,
+    onSave: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -197,6 +204,9 @@ internal fun NewEntryScreenContent(
                     }
                 )
             },
+            bottomBar = {
+                FooterLayout(onCancel = onCancel, onSaveEntry = onSave)
+            }
         ) {
             Column(modifier = Modifier.padding(it)) {
                 TextField(
@@ -267,7 +277,10 @@ internal fun NewEntryScreenContent(
                                 .weight(1f)
                         )
                         Spacer(modifier = Modifier.width(3.dp))
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.weight(0.35f)) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.weight(0.35f)
+                        ) {
                             TimeDuration(newEntryScreenState)
                         }
                     }
@@ -569,4 +582,38 @@ fun TopicChip(
         shape = RoundedCornerShape(65.dp),
         colors = AssistChipDefaults.assistChipColors(containerColor = Color(0XFFF2F2F7)),
     )
+}
+
+@Composable
+fun FooterLayout(
+    onCancel: () -> Unit,
+    onSaveEntry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Button(
+            onClick = onCancel,
+            colors = ButtonDefaults.buttonColors()
+                .copy(containerColor = MaterialTheme.colorScheme.onPrimaryContainer)
+        ) {
+            Text("Cancel", style = bodyStyle.copy(color = MaterialTheme.colorScheme.primary))
+        }
+        Button(
+            onClick = onSaveEntry,
+            modifier = Modifier.background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0XFF578CFF),
+                        Color(0XFF1F70F5)
+                    )
+                )
+            )
+        ) {
+            Text("Save", style = bodyStyle.copy(color = MaterialTheme.colorScheme.onPrimary))
+        }
+    }
 }

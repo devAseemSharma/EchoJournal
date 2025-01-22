@@ -72,7 +72,6 @@ dependencies {
     implementation (libs.media3.ui)
 
     //Waveform
-    implementation (libs.compose.audiowaveform)
     implementation (libs.amplituda)
     implementation (libs.jodd.util)
 
