@@ -41,7 +41,7 @@ private val MaxSpikeRadiusDp: Dp = 12.dp
 private const val MinProgress: Float = 0F
 private const val MaxProgress: Float = 1F
 
-private const val MinSpikeHeight: Float = 3F
+private const val MinSpikeHeight: Float = 0.5F
 private const val DefaultGraphicsLayerAlpha: Float = 0.99F
 
 @OptIn(ExperimentalComposeUiApi::class)

@@ -29,6 +29,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -64,6 +65,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -208,7 +210,11 @@ internal fun NewEntryScreenContent(
                 FooterLayout(onCancel = onCancel, onSaveEntry = onSave)
             }
         ) {
-            Column(modifier = Modifier.padding(it)) {
+            Column(
+                modifier = Modifier
+                    .padding(it)
+                    .background(color = MaterialTheme.colorScheme.surface)
+            ) {
                 TextField(
                     placeholder = {
                         Text(
@@ -598,22 +604,45 @@ fun FooterLayout(
         Button(
             onClick = onCancel,
             colors = ButtonDefaults.buttonColors()
-                .copy(containerColor = MaterialTheme.colorScheme.onPrimaryContainer)
+                .copy(containerColor = MaterialTheme.colorScheme.onPrimaryContainer),
+            modifier = Modifier
+                .weight(0.3f)
+                .background(
+                    shape = RoundedCornerShape(45.dp),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
         ) {
-            Text("Cancel", style = bodyStyle.copy(color = MaterialTheme.colorScheme.primary))
+            Text(
+                "Cancel",
+                style = bodyStyle.copy(color = MaterialTheme.colorScheme.primary, fontSize = 16.sp)
+            )
         }
+        Spacer(modifier = Modifier.width(16.dp))
         Button(
             onClick = onSaveEntry,
-            modifier = Modifier.background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0XFF578CFF),
-                        Color(0XFF1F70F5)
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Transparent,
+                disabledContentColor = MaterialTheme.colorScheme.surfaceVariant
+            ),
+            modifier = Modifier
+                .background(
+                    shape = RoundedCornerShape(45.dp),
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF578CFF),
+                            Color(0xFF1F70F5)
+                        )
                     )
                 )
-            )
+                .weight(0.7f)
         ) {
-            Text("Save", style = bodyStyle.copy(color = MaterialTheme.colorScheme.onPrimary))
+            Text(
+                text = "Save",
+                style = bodyStyle.copy(
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontSize = 16.sp
+                )
+            )
         }
     }
 }
