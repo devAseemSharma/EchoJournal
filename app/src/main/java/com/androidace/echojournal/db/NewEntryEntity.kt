@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.androidace.echojournal.ui.mood.model.Mood
 
 @Entity(
     tableName = "new_entry",
@@ -24,4 +25,5 @@ data class NewEntryEntity(
     @ColumnInfo(name = "recordingId") val recordingId: Int = 0,
     @ColumnInfo(name = "title") val title: String,
     @ColumnInfo(name = "description") val description: String,
+    val mood: Mood
 )

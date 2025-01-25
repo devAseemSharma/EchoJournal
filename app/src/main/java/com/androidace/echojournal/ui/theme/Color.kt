@@ -1,5 +1,6 @@
 package com.androidace.echojournal.ui.theme
 import androidx.compose.ui.graphics.Color
+import com.androidace.echojournal.ui.mood.model.Mood
 
 val primaryLight = Color(0xFF00419C)
 val onPrimaryLight = Color(0xFFFFFFFF)
@@ -218,8 +219,17 @@ val surfaceContainerHighDarkHighContrast = Color(0xFF282A30)
 val surfaceContainerHighestDarkHighContrast = Color(0xFF33343B)
 
 
+val moodColorPaletteMap: Map<Mood, MoodColor> = mapOf(
+    Mood.STRESSED to MoodColor(darkColor = Color(0XFFDE3A3A), lightColor = Color(0XFFE9C5C5)),
+    Mood.SAD to MoodColor(darkColor = Color(0XFF3A8EDE), lightColor = Color(0XFFC5D8E9)),
+    Mood.NEUTRAL to MoodColor(darkColor = Color(0XFF41B278), lightColor = Color(0XFFB9DDCB)),
+    Mood.PEACEFUL to MoodColor(darkColor = Color(0XFFBE3294), lightColor = Color(0XFFE1CEDB)),
+    Mood.EXCITED to MoodColor(darkColor = Color(0XFFDB6C0B), lightColor = Color(0XFFDDD2C8))
+)
 
-
-
+data class MoodColor(
+    val darkColor: Color,
+    val lightColor: Color
+)
 
 

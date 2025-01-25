@@ -29,7 +29,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -65,7 +64,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -83,6 +82,7 @@ import com.androidace.echojournal.ui.mood.MoodBottomSheet
 import com.androidace.echojournal.ui.mood.model.Mood
 import com.androidace.echojournal.ui.newentry.model.NewEntryScreenState
 import com.androidace.echojournal.ui.theme.bodyStyle
+import com.androidace.echojournal.ui.theme.moodColorPaletteMap
 import com.androidace.echojournal.ui.theme.titleStyle
 import com.androidace.echojournal.ui.theme.transparentTextFieldColors
 import kotlinx.coroutines.launch
@@ -112,9 +112,7 @@ fun NewEntryScreen(
         onMoodCancelClick = {
 
         },
-        onMoodConfirmClick = {
-
-        },
+        onMoodConfirmClick = viewModel::onMoodSelected,
         onProgressChange = viewModel::updateProgress,
         onPlayRecordClick = viewModel::updatePlaybackState,
         onAiAssistantClick = {
@@ -174,6 +172,7 @@ internal fun NewEntryScreenContent(
                     dragHandle = null
                 ) {
                     MoodBottomSheet(
+                        selectedMood = newEntryScreenState.selectedMood,
                         onCancel = {
                             coroutineScope.launch {
                                 bottomSheetState.hide()
@@ -230,7 +229,10 @@ internal fun NewEntryScreenContent(
                             }
                         }) {
                             Image(
-                                painter = painterResource(R.drawable.ic_add_mood),
+                                painter = painterResource(
+                                    newEntryScreenState.selectedMood?.activeResId
+                                        ?: R.drawable.ic_add_mood
+                                ),
                                 contentDescription = "Add Mood"
                             )
                         }
@@ -256,19 +258,30 @@ internal fun NewEntryScreenContent(
                             )
                             .weight(0.88f)
                     ) {
-                        Image(
-                            painter = if (!newEntryScreenState.audioWaveFormState.isPlaying) painterResource(
-                                R.drawable.ic_play_record
-                            ) else painterResource(R.drawable.ic_pause_small),
-                            contentDescription = "Play Record",
+                        Box(contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .padding(start = 4.dp)
-                                .shadow(elevation = 3.dp, shape = CircleShape)
+                                .size(32.dp)
+                                .shadow(elevation = 1.dp, shape = CircleShape)
+                                .background(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
                                 .clickable {
                                     onPlayRecordClick.invoke()
                                 }
                                 .weight(0.15f)
-                        )
+                        ) {
+                            Icon(
+                                painter = if (!newEntryScreenState.audioWaveFormState.isPlaying) painterResource(
+                                    R.drawable.ic_play
+                                ) else painterResource(R.drawable.ic_pause),
+                                contentDescription = "Play Icon",
+                                modifier = Modifier.size(14.dp),
+                                tint = moodColorPaletteMap[newEntryScreenState.selectedMood]?.darkColor
+                                    ?: MaterialTheme.colorScheme.primary
+                            )
+                        }
                         Spacer(modifier = Modifier.width(4.dp))
                         AudioWaveform(
                             amplitudes = newEntryScreenState.audioWaveFormState.amplitudes,
@@ -277,6 +290,14 @@ internal fun NewEntryScreenContent(
                             spikePadding = 2.dp,
                             spikeWidth = 4.dp,
                             spikeRadius = 3.dp,
+                            waveformBrush = SolidColor(
+                                moodColorPaletteMap[newEntryScreenState.selectedMood]?.lightColor
+                                    ?: MaterialTheme.colorScheme.primary
+                            ),
+                            progressBrush = SolidColor(
+                                moodColorPaletteMap[newEntryScreenState.selectedMood]?.darkColor
+                                    ?: MaterialTheme.colorScheme.primary
+                            ),
                             modifier = Modifier
                                 .heightIn(min = 25.dp, max = 48.dp)
                                 .padding(vertical = 10.dp)

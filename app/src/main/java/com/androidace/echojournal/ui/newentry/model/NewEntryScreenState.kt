@@ -1,9 +1,11 @@
 package com.androidace.echojournal.ui.newentry.model
 
 import com.androidace.echojournal.db.Topic
+import com.androidace.echojournal.ui.mood.model.Mood
 
 data class NewEntryScreenState(
     val newEntryTitle: String = "",
+    val selectedMood: Mood? = null,
     val newEntryTitleHint: String = "Add Title...",
     val topicSearchText: String = "",
     val topicSearchTextHint: String = "Topic",

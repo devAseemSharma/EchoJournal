@@ -35,14 +35,15 @@ import kotlinx.collections.immutable.PersistentList
 
 @Composable
 fun MoodBottomSheet(
+    selectedMood: Mood? = null,
     onCancel: () -> Unit,
     onConfirm: (Mood) -> Unit,
     viewModel: MoodBottomSheetViewModel = hiltViewModel()
 ) {
     val moodList = viewModel.moodList
     MoodBottomSheet(
-        moodList =
-        moodList,
+        selectedMood = selectedMood,
+        moodList = moodList,
         onCancel = onCancel,
         onConfirm = onConfirm,
     )
@@ -50,13 +51,14 @@ fun MoodBottomSheet(
 
 @Composable
 fun MoodBottomSheet(
+    selectedMood: Mood? = null,
     moodList: PersistentList<Mood>,
     onCancel: () -> Unit,
     onConfirm: (Mood) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Track which mood is currently selected; default = NEUTRAL or null if you prefer
-    var selectedMood by remember { mutableStateOf<Mood?>(null) }
+    var selectedMood by remember { mutableStateOf(selectedMood) }
 
     // Container for the bottom sheet content
     Surface(

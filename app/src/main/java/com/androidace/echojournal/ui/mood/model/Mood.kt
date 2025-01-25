@@ -8,7 +8,7 @@ enum class Mood(
     @DrawableRes val activeResId: Int,
     @DrawableRes val inactiveResId: Int
 ) {
-    STRESSED("Stressed", R.drawable.stress_active, R.drawable.stress_inactive),
+    STRESSED("Stressed", R.drawable.stress_active, R.drawable.stress_inactive, ),
     SAD("Sad", R.drawable.sad_active, R.drawable.sad_inactive),
     NEUTRAL("Neutral", R.drawable.neutral_active, R.drawable.neutral_inactive),
     PEACEFUL("Peaceful", R.drawable.peaceful_active, R.drawable.peaceful_inactive),

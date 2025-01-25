@@ -10,6 +10,7 @@ import com.androidace.echojournal.db.Topic
 import com.androidace.echojournal.repository.TopicRepository
 import com.androidace.echojournal.ui.common.UIStateHandlerImpl
 import com.androidace.echojournal.ui.common.UiStateHandler
+import com.androidace.echojournal.ui.mood.model.Mood
 import com.androidace.echojournal.ui.newentry.model.NewEntryScreenState
 import com.androidace.echojournal.util.formatMillis
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -113,6 +114,12 @@ class NewEntryViewModel @Inject constructor(
                 e.printStackTrace()
             }
         }
+    }
+
+    fun onMoodSelected(mood: Mood){
+        _newScreenState.value = _newScreenState.value.copy(
+            selectedMood = mood
+        )
     }
 
     private suspend fun loadAudioAmplitudes(localAudio: RecordedAudio) {
