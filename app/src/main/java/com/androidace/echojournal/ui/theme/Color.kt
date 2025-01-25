@@ -1,4 +1,5 @@
 package com.androidace.echojournal.ui.theme
+
 import androidx.compose.ui.graphics.Color
 import com.androidace.echojournal.ui.mood.model.Mood
 
@@ -220,16 +221,37 @@ val surfaceContainerHighestDarkHighContrast = Color(0xFF33343B)
 
 
 val moodColorPaletteMap: Map<Mood, MoodColor> = mapOf(
-    Mood.STRESSED to MoodColor(darkColor = Color(0XFFDE3A3A), lightColor = Color(0XFFE9C5C5)),
-    Mood.SAD to MoodColor(darkColor = Color(0XFF3A8EDE), lightColor = Color(0XFFC5D8E9)),
-    Mood.NEUTRAL to MoodColor(darkColor = Color(0XFF41B278), lightColor = Color(0XFFB9DDCB)),
-    Mood.PEACEFUL to MoodColor(darkColor = Color(0XFFBE3294), lightColor = Color(0XFFE1CEDB)),
-    Mood.EXCITED to MoodColor(darkColor = Color(0XFFDB6C0B), lightColor = Color(0XFFDDD2C8))
+    Mood.STRESSED to MoodColor(
+        darkColor = Color(0XFFDE3A3A),
+        lightColor = Color(0XFFE9C5C5),
+        lightBgColor = Color(0XFFF8EFEF)
+    ),
+    Mood.SAD to MoodColor(
+        darkColor = Color(0XFF3A8EDE),
+        lightColor = Color(0XFFC5D8E9),
+        lightBgColor = Color(0XFFEFF4F8)
+    ),
+    Mood.NEUTRAL to MoodColor(
+        darkColor = Color(0XFF41B278),
+        lightColor = Color(0XFFB9DDCB),
+        lightBgColor = Color(0XFFEEF7F3)
+    ),
+    Mood.PEACEFUL to MoodColor(
+        darkColor = Color(0XFFBE3294),
+        lightColor = Color(0XFFE1CEDB),
+        lightBgColor = Color(0XFFF6F2F5)
+    ),
+    Mood.EXCITED to MoodColor(
+        darkColor = Color(0XFFDB6C0B),
+        lightColor = Color(0XFFDDD2C8),
+        lightBgColor = Color(0XFFF5F2EF)
+    )
 )
 
 data class MoodColor(
     val darkColor: Color,
-    val lightColor: Color
+    val lightColor: Color,
+    val lightBgColor: Color
 )
 
 

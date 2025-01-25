@@ -253,34 +253,36 @@ internal fun NewEntryScreenContent(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .background(
-                                color = MaterialTheme.colorScheme.inverseOnSurface,
+                                color = moodColorPaletteMap[newEntryScreenState.selectedMood]?.lightBgColor
+                                    ?: MaterialTheme.colorScheme.inverseOnSurface,
                                 shape = RoundedCornerShape(45.dp)
                             )
                             .weight(0.88f)
                     ) {
-                        Box(contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                                .size(32.dp)
-                                .shadow(elevation = 1.dp, shape = CircleShape)
-                                .background(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.onPrimary
+                        Box(modifier = Modifier.weight(0.18f)) {
+                            Box(contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .padding(start = 4.dp)
+                                    .size(32.dp)
+                                    .shadow(elevation = 1.dp, shape = CircleShape)
+                                    .background(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                    .clickable {
+                                        onPlayRecordClick.invoke()
+                                    }
+                            ) {
+                                Icon(
+                                    painter = if (!newEntryScreenState.audioWaveFormState.isPlaying) painterResource(
+                                        R.drawable.ic_play
+                                    ) else painterResource(R.drawable.ic_pause),
+                                    contentDescription = "Play Icon",
+                                    modifier = Modifier.size(14.dp),
+                                    tint = moodColorPaletteMap[newEntryScreenState.selectedMood]?.darkColor
+                                        ?: MaterialTheme.colorScheme.primary
                                 )
-                                .clickable {
-                                    onPlayRecordClick.invoke()
-                                }
-                                .weight(0.15f)
-                        ) {
-                            Icon(
-                                painter = if (!newEntryScreenState.audioWaveFormState.isPlaying) painterResource(
-                                    R.drawable.ic_play
-                                ) else painterResource(R.drawable.ic_pause),
-                                contentDescription = "Play Icon",
-                                modifier = Modifier.size(14.dp),
-                                tint = moodColorPaletteMap[newEntryScreenState.selectedMood]?.darkColor
-                                    ?: MaterialTheme.colorScheme.primary
-                            )
+                            }
                         }
                         Spacer(modifier = Modifier.width(4.dp))
                         AudioWaveform(
@@ -292,7 +294,7 @@ internal fun NewEntryScreenContent(
                             spikeRadius = 3.dp,
                             waveformBrush = SolidColor(
                                 moodColorPaletteMap[newEntryScreenState.selectedMood]?.lightColor
-                                    ?: MaterialTheme.colorScheme.primary
+                                    ?: Color.White
                             ),
                             progressBrush = SolidColor(
                                 moodColorPaletteMap[newEntryScreenState.selectedMood]?.darkColor
@@ -301,12 +303,12 @@ internal fun NewEntryScreenContent(
                             modifier = Modifier
                                 .heightIn(min = 25.dp, max = 48.dp)
                                 .padding(vertical = 10.dp)
-                                .weight(1f)
+                                .weight(1.1f)
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier.weight(0.35f)
+                            modifier = Modifier.weight(0.38f)
                         ) {
                             TimeDuration(newEntryScreenState)
                         }
