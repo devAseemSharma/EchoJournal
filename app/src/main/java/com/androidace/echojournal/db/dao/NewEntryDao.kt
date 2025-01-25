@@ -32,12 +32,9 @@ interface NewEntryDao {
         // 1. Insert the NewEntry
         val newEntryId = insertNewEntry(newEntry).toInt()
 
-        // 2. Insert Topics (or fetch existing if you want to reuse topics)
-        val topicIds = insertTopics(*topics.toTypedArray())
-
         // 3. For each topic, create cross-ref
-        topicIds.forEach { topicId ->
-            insertCrossRef(NewEntryTopicCrossRef(newEntryId, topicId.toInt()))
+        topics.forEach { topicId ->
+            insertCrossRef(NewEntryTopicCrossRef(newEntryId, topicId.topicId))
         }
 
         return newEntryId.toLong()

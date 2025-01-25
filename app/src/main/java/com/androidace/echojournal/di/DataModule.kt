@@ -6,8 +6,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import linc.com.amplituda.Amplituda
 
 @Module
@@ -15,7 +13,4 @@ import linc.com.amplituda.Amplituda
 object DataModule {
     @Provides
     fun provideAmplituda(@ApplicationContext context: Context): Amplituda = Amplituda(context)
-
-    @Provides
-    fun provideCoroutineContext(): CoroutineDispatcher = Dispatchers.IO
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -96,15 +98,16 @@ fun NewEntryScreen(
     val eJUiState by viewModel.eJUiStateFlow.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState()
     val newEntryScreenState by viewModel.newScreenState.collectAsStateWithLifecycle()
-// The list of selected topics
-    val selectedTopics = remember { mutableStateListOf<Topic>() }
-
+    val validateForm by viewModel.isFormValidated.collectAsStateWithLifecycle()
+    // The list of selected topics
+    val selectedTopics by viewModel.selectedTopic.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) {
         viewModel.loadAudio(newEntry?.id ?: 0)
     }
 
     NewEntryScreenContent(
         ejUiState = eJUiState,
+        validateForm = validateForm,
         newEntryScreenState = newEntryScreenState,
         onValueChange = viewModel::onTitleValueChange,
         selectedTopics = selectedTopics,
@@ -131,9 +134,10 @@ fun NewEntryScreen(
             if (!selectedTopics.contains(it)) {
                 selectedTopics.add(it)
             }
+            viewModel.validate()
         },
         onCancel = {},
-        onSave = {}
+        onSave = viewModel::onSaveEntry
     )
 }
 
@@ -142,6 +146,7 @@ fun NewEntryScreen(
 internal fun NewEntryScreenContent(
     ejUiState: EJUIState,
     newEntryScreenState: NewEntryScreenState,
+    validateForm: Boolean,
     bottomSheetState: SheetState,
     selectedTopics: SnapshotStateList<Topic>,
     onValueChange: (String) -> Unit,
@@ -206,7 +211,11 @@ internal fun NewEntryScreenContent(
                 )
             },
             bottomBar = {
-                FooterLayout(onCancel = onCancel, onSaveEntry = onSave)
+                FooterLayout(
+                    validateForm = validateForm,
+                    onCancel = onCancel,
+                    onSaveEntry = onSave
+                )
             }
         ) {
             Column(
@@ -615,6 +624,7 @@ fun TopicChip(
 
 @Composable
 fun FooterLayout(
+    validateForm: Boolean,
     onCancel: () -> Unit,
     onSaveEntry: () -> Unit,
     modifier: Modifier = Modifier
@@ -640,32 +650,42 @@ fun FooterLayout(
                 style = bodyStyle.copy(color = MaterialTheme.colorScheme.primary, fontSize = 16.sp)
             )
         }
-        Spacer(modifier = Modifier.width(16.dp))
-        Button(
-            onClick = onSaveEntry,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Transparent,
-                disabledContentColor = MaterialTheme.colorScheme.surfaceVariant
-            ),
+        Spacer(
+            modifier = Modifier.width(16.dp)
+        )
+        Box(
             modifier = Modifier
                 .background(
                     shape = RoundedCornerShape(45.dp),
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF578CFF),
-                            Color(0xFF1F70F5)
-                        )
-                    )
+                    brush = if (validateForm)
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFF578CFF),
+                                Color(0xFF1F70F5)
+                            )
+                        ) else SolidColor(MaterialTheme.colorScheme.surfaceVariant)
                 )
                 .weight(0.7f)
         ) {
-            Text(
-                text = "Save",
-                style = bodyStyle.copy(
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontSize = 16.sp
+            Button(
+                onClick = onSaveEntry,
+                enabled = validateForm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    disabledContentColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Save",
+                    style = bodyStyle.copy(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontSize = 16.sp
+                    )
                 )
-            )
+            }
         }
+
     }
 }

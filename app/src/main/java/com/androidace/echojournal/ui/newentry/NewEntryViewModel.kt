@@ -1,12 +1,16 @@
 package com.androidace.echojournal.ui.newentry
 
 import android.util.Log
+import android.widget.Toast
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.androidace.echojournal.audio.AudioPlaybackManager
 import com.androidace.echojournal.data.AudioRepository
 import com.androidace.echojournal.db.RecordedAudio
 import com.androidace.echojournal.db.Topic
+import com.androidace.echojournal.repository.NewEntryRepository
 import com.androidace.echojournal.repository.TopicRepository
 import com.androidace.echojournal.ui.common.UIStateHandlerImpl
 import com.androidace.echojournal.ui.common.UiStateHandler
@@ -24,12 +28,21 @@ import javax.inject.Inject
 class NewEntryViewModel @Inject constructor(
     private val audioRepository: AudioRepository,
     private val topicRepository: TopicRepository,
+    private val newEntryRepository: NewEntryRepository,
     private val playbackManager: AudioPlaybackManager,
     val uiStateHandlerImpl: UIStateHandlerImpl,
 ) : ViewModel(), UiStateHandler by uiStateHandlerImpl {
 
     private var _newScreenState = MutableStateFlow(NewEntryScreenState())
     val newScreenState = _newScreenState.asStateFlow()
+
+    private var _isFormValidated = MutableStateFlow(false)
+    val isFormValidated = _isFormValidated.asStateFlow()
+
+    private var _selectedTopic = MutableStateFlow<SnapshotStateList<Topic>>(
+        value = mutableStateListOf<Topic>()
+    )
+    val selectedTopic = _selectedTopic.asStateFlow()
 
     private var currentLocalAudio: RecordedAudio? = null
 
@@ -67,6 +80,7 @@ class NewEntryViewModel @Inject constructor(
         _newScreenState.value = _newScreenState.value.copy(
             newEntryTitle = text
         )
+        validate()
     }
 
     fun updateProgress(progress: Float) {
@@ -101,6 +115,7 @@ class NewEntryViewModel @Inject constructor(
         }
     }
 
+
     fun loadAudio(contentId: Int) {
         viewModelScope.launch {
             try {
@@ -116,11 +131,34 @@ class NewEntryViewModel @Inject constructor(
         }
     }
 
-    fun onMoodSelected(mood: Mood){
+    fun onSaveEntry() {
+        viewModelScope.launch {
+            val insertedId = newEntryRepository.insertNewEntryWithTopic(
+                title = _newScreenState.value.newEntryTitle,
+                description = "Sample Desc",
+                mood = _newScreenState.value.selectedMood ?: Mood.NEUTRAL,
+                recordedAudio = currentLocalAudio!!,
+                selectedTopics = _selectedTopic.value
+            )
+            if (insertedId > 0L) {
+                Log.d("Record Inserted", "RecordId:$insertedId")
+            }
+        }
+    }
+
+    fun onMoodSelected(mood: Mood) {
         _newScreenState.value = _newScreenState.value.copy(
             selectedMood = mood
         )
+        validate()
     }
+
+    fun validate() {
+        _isFormValidated.value = _newScreenState.value.newEntryTitle.isNotEmpty()
+                && _newScreenState.value.selectedMood != null
+                && _selectedTopic.value.isNotEmpty()
+    }
+
 
     private suspend fun loadAudioAmplitudes(localAudio: RecordedAudio) {
         try {

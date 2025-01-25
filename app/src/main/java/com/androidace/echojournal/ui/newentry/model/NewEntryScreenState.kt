@@ -10,7 +10,6 @@ data class NewEntryScreenState(
     val topicSearchText: String = "",
     val topicSearchTextHint: String = "Topic",
     val listTopics: List<Topic> = emptyList(),
-    val selectedListTopics: List<Topic> = emptyList(),
     val descriptionText: String = "",
     val descriptionTextHint: String = "Add Description...",
     val audioWaveFormState: AudioWaveFormState = AudioWaveFormState()

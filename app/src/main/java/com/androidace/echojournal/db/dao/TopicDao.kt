@@ -42,4 +42,7 @@ interface TopicDao {
     @Transaction
     @Query("SELECT * FROM topics WHERE topicId = :topicId")
     suspend fun getTopicWithEntries(topicId: Int): TopicWithNewEntries?
+
+    @Query("SELECT * FROM topics WHERE topicId IN (:topicIds)")
+    suspend fun getTopicsByIds(topicIds: List<Int>): List<Topic>
 }
