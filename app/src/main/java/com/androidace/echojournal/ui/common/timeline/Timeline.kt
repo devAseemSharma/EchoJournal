@@ -24,7 +24,7 @@ fun Timeline(
                 lineStyle = lineStyle,
                 orientation = orientation
             ),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.TopCenter
     ) {
         marker()
     }
@@ -44,11 +44,6 @@ private fun Modifier.drawTimeline(
         if (lineType != LineType.SINGLE) {
             when (orientation) {
                 TimelineOrientation.Vertical -> drawVerticalLines(lineType, markerSize, lineStyle)
-                TimelineOrientation.Horizontal -> drawHorizontalLines(
-                    lineType,
-                    markerSize,
-                    lineStyle
-                )
             }
         }
     }
@@ -72,26 +67,8 @@ private fun DrawScope.drawVerticalLines(
     }
 }
 
-private fun DrawScope.drawHorizontalLines(
-    lineType: LineType,
-    markerSize: Dp,
-    lineStyle: LineStyle
-) {
-    when (lineType) {
-        LineType.START -> drawEndLineHorizontal(markerSize, lineStyle)
-        LineType.END -> drawStartLineHorizontal(markerSize, lineStyle)
-        LineType.MIDDLE -> {
-            drawStartLineHorizontal(markerSize, lineStyle)
-            drawEndLineHorizontal(markerSize, lineStyle)
-        }
-
-        LineType.SINGLE -> { /* No lines for single item */
-        }
-    }
-}
-
 private fun DrawScope.drawStartLine(markerSize: Dp, lineStyle: LineStyle) {
-    val startOffset = this.center - Offset(0f, markerSize.div(2).toPx())
+    val startOffset = Offset(0f, markerSize.toPx())
     val endOffset = Offset(this.center.x, 0f)
     drawLine(
         color = lineStyle.color,
@@ -103,32 +80,8 @@ private fun DrawScope.drawStartLine(markerSize: Dp, lineStyle: LineStyle) {
 }
 
 private fun DrawScope.drawEndLine(markerSize: Dp, lineStyle: LineStyle) {
-    val startOffset = this.center + Offset(0f, markerSize.div(2).toPx())
+    val startOffset = Offset(this.center.x, markerSize.toPx())
     val endOffset = Offset(this.center.x, this.size.height)
-    drawLine(
-        color = lineStyle.color,
-        start = startOffset,
-        end = endOffset,
-        strokeWidth = lineStyle.width.toPx(),
-        pathEffect = lineStyle.pathEffect
-    )
-}
-
-private fun DrawScope.drawStartLineHorizontal(markerSize: Dp, lineStyle: LineStyle) {
-    val startOffset = this.center - Offset(markerSize.div(2).toPx(), 0f)
-    val endOffset = Offset(0f, this.center.y)
-    drawLine(
-        color = lineStyle.color,
-        start = startOffset,
-        end = endOffset,
-        strokeWidth = lineStyle.width.toPx(),
-        pathEffect = lineStyle.pathEffect
-    )
-}
-
-private fun DrawScope.drawEndLineHorizontal(markerSize: Dp, lineStyle: LineStyle) {
-    val startOffset = this.center + Offset(markerSize.div(2).toPx(), 0f)
-    val endOffset = Offset(this.size.width, this.center.y)
     drawLine(
         color = lineStyle.color,
         start = startOffset,

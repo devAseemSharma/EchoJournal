@@ -172,7 +172,7 @@ fun HomeScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(modifier = Modifier.background(color = Color.LightGray)) {
+        LazyColumn {
             itemsIndexed(items = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)) { position, item ->
                 TimelineRow(
                     TimelineEntry(
@@ -455,7 +455,7 @@ fun TimelineRow(entry: TimelineEntry, position: Int, totalItems: Int) {
             lineType = getLineType(position, totalItems),
             orientation = TimelineOrientation.Vertical,
             lineStyle = LineStyle.solid(
-                color = Color(0xFF4CAF50),
+                color = MaterialTheme.colorScheme.outlineVariant,
                 width = 2.dp
             ),
             marker = {
@@ -463,7 +463,7 @@ fun TimelineRow(entry: TimelineEntry, position: Int, totalItems: Int) {
                     painter = painterResource(id = entry.mood.activeResId),
                     contentDescription = "Mood Icon",
                     modifier = Modifier
-                        .size(24.dp)
+                        .size(36.dp)
                 )
             }
         )
@@ -473,6 +473,9 @@ fun TimelineRow(entry: TimelineEntry, position: Int, totalItems: Int) {
             modifier = Modifier
                 .padding(start = 8.dp)
                 .fillMaxWidth(),
+            colors = CardDefaults.cardColors().copy(
+                containerColor = MaterialTheme.colorScheme.onPrimary
+            ),
             shape = RoundedCornerShape(12.dp),
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
