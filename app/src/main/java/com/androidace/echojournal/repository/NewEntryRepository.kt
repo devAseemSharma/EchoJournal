@@ -48,7 +48,7 @@ class NewEntryRepository @Inject constructor(
     }
 
     suspend fun getTimelineEntriesByTopicList(topics: List<Topic>): List<TimelineEntry> {
-        withContext(coroutineContext) {
+     return  withContext(coroutineContext) {
             val entries =
                 newEntryDao.getNewEntriesByAllTopicsSorted(topics.map { it.topicId }, topics.size)
             entries.map { it.toTimelineEntry() }

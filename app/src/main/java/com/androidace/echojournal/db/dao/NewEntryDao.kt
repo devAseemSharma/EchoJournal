@@ -26,9 +26,11 @@ interface NewEntryDao {
     @Query("SELECT * FROM new_entry WHERE newEntryId = :entryId")
     suspend fun getNewEntryWithTopics(entryId: Int): NewEntryWithTopics?
 
+    @Transaction
     @Query("SELECT * FROM new_entry ORDER BY createdAt DESC")
     suspend fun getAllEntriesByNewestFirst(): List<NewEntryWithAudioAndTopics>
 
+    @Transaction
     @Query("""
     SELECT ne.*
     FROM new_entry AS ne

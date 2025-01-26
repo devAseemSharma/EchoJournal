@@ -20,6 +20,7 @@ hilt-compose-nav = "1.2.0"
 media3_version = "1.5.1"
 room = "2.6.1"
 uiTextGoogleFonts = "1.7.6"
+constraintlayout = "2.2.0"
 
 [libraries]
 amplituda = { module = "com.github.lincollincol:amplituda", version.ref = "amplituda" }
@@ -62,6 +63,7 @@ room = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-compiler = {group = "androidx.room", name = "room-compiler", version.ref = "room"}
 room-ktx = {group = "androidx.room", name = "room-ktx", version.ref = "room"}
 androidx-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts", version.ref = "uiTextGoogleFonts" }
+androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

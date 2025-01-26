@@ -21,17 +21,25 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -50,6 +58,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester.Companion.createRefs
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -59,13 +68,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.androidace.echojournal.R
+import com.androidace.echojournal.db.Topic
+import com.androidace.echojournal.ui.common.timeline.LineStyle
+import com.androidace.echojournal.ui.common.timeline.Timeline
+import com.androidace.echojournal.ui.common.timeline.TimelineOrientation
+import com.androidace.echojournal.ui.common.timeline.getLineType
 import com.androidace.echojournal.ui.home.model.TimelineEntry
+import com.androidace.echojournal.ui.mood.model.Mood
 import com.androidace.echojournal.ui.newentry.TopicChip
 import com.androidace.echojournal.ui.recording.RecordingViewModel
 import com.androidace.echojournal.ui.theme.moodColorPaletteMap
@@ -156,10 +172,24 @@ fun HomeScreen(
             }
         }
     ) { paddingValues ->
-        Text(
-            text = "Home Screen",
-            modifier = Modifier.padding(paddingValues)
-        )
+        LazyColumn(modifier = Modifier.background(color = Color.LightGray)) {
+            itemsIndexed(items = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)) { position, item ->
+                TimelineRow(
+                    TimelineEntry(
+                        id = 1,
+                        mood = Mood.PEACEFUL,
+                        title = "New Entry",
+                        description = "Book Reading",
+                        createdAt = LocalDate.now().toEpochDay(),
+                        topics = listOf(
+                            Topic(topicId = 1, name = "Android")
+                        ),
+                        audioPath = "",
+                        audioDuration = "00:00"
+                    ), position, 10
+                )
+            }
+        }
         // Overlay the "recording UI" if showRecording == true
         if (showRecording) {
             RecordingUI(
@@ -412,35 +442,31 @@ fun DayHeader(date: LocalDate) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun TimelineRow(entry: TimelineEntry) {
+fun TimelineRow(entry: TimelineEntry, position: Int, totalItems: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .height(IntrinsicSize.Min)
+            .padding(horizontal = 16.dp)
     ) {
         // Left side: icon + timeline line
-        Column(
-            modifier = Modifier.width(40.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Mood icon
-            Icon(
-                painter = painterResource(id = entry.mood.activeResId),
-                contentDescription = "Mood Icon",
-                modifier = Modifier
-                    .size(24.dp)
-                    .background(Color.White, shape = CircleShape)
-            )
-
-            // Timeline line (spacer or a line)
-            // You can also only draw it for items below the top one if you prefer.
-            Spacer(
-                modifier = Modifier
-                    .width(2.dp)
-                    .height(48.dp)
-                    .background(color = MaterialTheme.colorScheme.outlineVariant)
-            )
-        }
+        Timeline(
+            modifier = Modifier.fillMaxHeight(),
+            lineType = getLineType(position, totalItems),
+            orientation = TimelineOrientation.Vertical,
+            lineStyle = LineStyle.solid(
+                color = Color(0xFF4CAF50),
+                width = 2.dp
+            ),
+            marker = {
+                Image(
+                    painter = painterResource(id = entry.mood.activeResId),
+                    contentDescription = "Mood Icon",
+                    modifier = Modifier
+                        .size(24.dp)
+                )
+            }
+        )
 
         // Right side: the content card
         Card(
@@ -521,4 +547,23 @@ fun Dp.toPx(density: Density): Float {
     return with(density) {
         this@toPx.toPx()
     }
+}
+
+@Preview
+@Composable
+private fun PreviewTimelineRow() {
+    TimelineRow(
+        TimelineEntry(
+            id = 1,
+            mood = Mood.PEACEFUL,
+            title = "New Entry",
+            description = "Book Reading",
+            createdAt = LocalDate.now().toEpochDay(),
+            topics = listOf(
+                Topic(topicId = 1, name = "Android")
+            ),
+            audioPath = "",
+            audioDuration = "00:00"
+        ), 0, 3
+    )
 }

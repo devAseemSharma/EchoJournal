@@ -10,7 +10,7 @@ data class NewEntryWithAudioAndTopics(
 
     @Relation(
         parentColumn = "recordingId",
-        entityColumn = "newEntryId"
+        entityColumn = "id"
     )
     val recordedAudio: RecordedAudio?,
 
