@@ -5,6 +5,8 @@ import com.androidace.echojournal.db.RecordedAudio
 import com.androidace.echojournal.db.Topic
 import com.androidace.echojournal.db.dao.NewEntryDao
 import com.androidace.echojournal.db.dao.TopicDao
+import com.androidace.echojournal.ui.home.model.TimelineEntry
+import com.androidace.echojournal.ui.home.model.toTimelineEntry
 import com.androidace.echojournal.ui.mood.model.Mood
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -37,4 +39,22 @@ class NewEntryRepository @Inject constructor(
             )
         }
     }
+
+    suspend fun getTimelineEntries(): List<TimelineEntry> {
+        return withContext(coroutineContext) {
+            val entries = newEntryDao.getAllEntriesByNewestFirst()
+            entries.map { it.toTimelineEntry() }
+        }
+    }
+
+    suspend fun getTimelineEntriesByTopicList(topics: List<Topic>): List<TimelineEntry> {
+        withContext(coroutineContext) {
+            val entries =
+                newEntryDao.getNewEntriesByAllTopicsSorted(topics.map { it.topicId }, topics.size)
+            entries.map { it.toTimelineEntry() }
+        }
+
+    }
+
+
 }

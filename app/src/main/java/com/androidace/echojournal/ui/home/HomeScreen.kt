@@ -21,11 +21,22 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -40,19 +51,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.androidace.echojournal.R
+import com.androidace.echojournal.ui.home.model.TimelineEntry
+import com.androidace.echojournal.ui.newentry.TopicChip
 import com.androidace.echojournal.ui.recording.RecordingViewModel
+import com.androidace.echojournal.ui.theme.moodColorPaletteMap
+import com.androidace.echojournal.util.formatMillis
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import kotlin.math.sqrt
 
 @Composable
@@ -195,7 +214,7 @@ fun RecordingUI(
             )
             // Recording "button" or text
             PulseRecordingButton {
-                recordingViewModel.stopRecording{
+                recordingViewModel.stopRecording {
                     onDone.invoke()
                 }
             }
@@ -368,6 +387,128 @@ fun CancelButton(
         )
     }
 }
+
+@Composable
+fun DayHeader(date: LocalDate) {
+    val today = LocalDate.now()
+    val label = when (date) {
+        today -> "TODAY"
+        today.minusDays(1) -> "YESTERDAY"
+        else -> date.format(DateTimeFormatter.ofPattern("EEEE, MMM d"))
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleSmall
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun TimelineRow(entry: TimelineEntry) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        // Left side: icon + timeline line
+        Column(
+            modifier = Modifier.width(40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Mood icon
+            Icon(
+                painter = painterResource(id = entry.mood.activeResId),
+                contentDescription = "Mood Icon",
+                modifier = Modifier
+                    .size(24.dp)
+                    .background(Color.White, shape = CircleShape)
+            )
+
+            // Timeline line (spacer or a line)
+            // You can also only draw it for items below the top one if you prefer.
+            Spacer(
+                modifier = Modifier
+                    .width(2.dp)
+                    .height(48.dp)
+                    .background(color = MaterialTheme.colorScheme.outlineVariant)
+            )
+        }
+
+        // Right side: the content card
+        Card(
+            modifier = Modifier
+                .padding(start = 8.dp)
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(4.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            ) {
+                // Title
+                Text(
+                    text = entry.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+
+                // Audio player row (placeholder or custom UI)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_play),
+                        contentDescription = null,
+                        tint = moodColorPaletteMap[entry.mood]?.darkColor
+                            ?: MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(text = entry.audioDuration)
+                }
+
+                // Optional: show partial or full description
+                if (!entry.description.isNullOrBlank()) {
+                    Text(
+                        text = entry.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                // Topics row
+                if (entry.topics.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        entry.topics.forEach { topic ->
+                            TopicChip(topic)
+                        }
+                    }
+                }
+
+                // Time text (e.g., 17:30)
+                val timeText = formatMillis(entry.createdAt)
+                Text(
+                    text = timeText,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(top = 4.dp)
+                )
+            }
+        }
+    }
+}
+
 
 private fun Offset.distanceTo(other: Offset): Float {
     val dx = x - other.x

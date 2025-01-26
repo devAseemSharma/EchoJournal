@@ -579,7 +579,7 @@ fun TopicsAutoCompleteField(
 @Composable
 fun TopicChip(
     topic: Topic,
-    onRemove: () -> Unit
+    onRemove: () -> Unit = {}
 ) {
     AssistChip(
         label = {

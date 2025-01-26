@@ -6,6 +6,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import com.androidace.echojournal.db.NewEntryEntity
 import com.androidace.echojournal.db.NewEntryTopicCrossRef
+import com.androidace.echojournal.db.NewEntryWithAudioAndTopics
 import com.androidace.echojournal.db.NewEntryWithTopics
 import com.androidace.echojournal.db.Topic
 import com.androidace.echojournal.ui.newentry.NewEntry
@@ -26,7 +27,7 @@ interface NewEntryDao {
     suspend fun getNewEntryWithTopics(entryId: Int): NewEntryWithTopics?
 
     @Query("SELECT * FROM new_entry ORDER BY createdAt DESC")
-    suspend fun getAllEntriesByNewestFirst(): List<NewEntry>
+    suspend fun getAllEntriesByNewestFirst(): List<NewEntryWithAudioAndTopics>
 
     @Query("""
     SELECT ne.*
@@ -38,7 +39,7 @@ interface NewEntryDao {
     HAVING COUNT(DISTINCT cr.topicId) = :topicCount
     ORDER BY ne.createdAt DESC
 """)
-    suspend fun getNewEntriesByAllTopicsSorted(topicIds: List<Int>, topicCount: Int): List<NewEntry>
+    suspend fun getNewEntriesByAllTopicsSorted(topicIds: List<Int>, topicCount: Int): List<NewEntryWithAudioAndTopics>
 
     @Transaction
     suspend fun insertNewEntryWithTopics(
