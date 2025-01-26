@@ -8,6 +8,7 @@ import com.androidace.echojournal.db.NewEntryEntity
 import com.androidace.echojournal.db.NewEntryTopicCrossRef
 import com.androidace.echojournal.db.NewEntryWithTopics
 import com.androidace.echojournal.db.Topic
+import com.androidace.echojournal.ui.newentry.NewEntry
 
 @Dao
 interface NewEntryDao {
@@ -23,6 +24,21 @@ interface NewEntryDao {
     @Transaction
     @Query("SELECT * FROM new_entry WHERE newEntryId = :entryId")
     suspend fun getNewEntryWithTopics(entryId: Int): NewEntryWithTopics?
+
+    @Query("SELECT * FROM new_entry ORDER BY createdAt DESC")
+    suspend fun getAllEntriesByNewestFirst(): List<NewEntry>
+
+    @Query("""
+    SELECT ne.*
+    FROM new_entry AS ne
+    INNER JOIN new_entry_topic_cross_ref AS cr
+      ON ne.newEntryId = cr.newEntryId
+    WHERE cr.topicId IN (:topicIds)
+    GROUP BY ne.newEntryId
+    HAVING COUNT(DISTINCT cr.topicId) = :topicCount
+    ORDER BY ne.createdAt DESC
+""")
+    suspend fun getNewEntriesByAllTopicsSorted(topicIds: List<Int>, topicCount: Int): List<NewEntry>
 
     @Transaction
     suspend fun insertNewEntryWithTopics(

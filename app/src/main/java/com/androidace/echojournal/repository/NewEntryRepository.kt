@@ -30,7 +30,8 @@ class NewEntryRepository @Inject constructor(
                     recordingId = recordedAudio.id,
                     title = title,
                     description = description,
-                    mood = mood
+                    mood = mood,
+                    createdAt = System.currentTimeMillis()
                 ),
                 topics = topics
             )

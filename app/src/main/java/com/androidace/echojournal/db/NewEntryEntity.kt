@@ -25,5 +25,6 @@ data class NewEntryEntity(
     @ColumnInfo(name = "recordingId") val recordingId: Int = 0,
     @ColumnInfo(name = "title") val title: String,
     @ColumnInfo(name = "description") val description: String,
+    val createdAt: Long, // Store epoch millis
     val mood: Mood
 )
