@@ -14,6 +14,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -39,16 +40,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -74,8 +78,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidace.echojournal.R
 import com.androidace.echojournal.db.Topic
+import com.androidace.echojournal.db.TopicWithNewEntries
 import com.androidace.echojournal.ui.common.timeline.LineStyle
 import com.androidace.echojournal.ui.common.timeline.Timeline
 import com.androidace.echojournal.ui.common.timeline.TimelineOrientation
@@ -85,14 +91,17 @@ import com.androidace.echojournal.ui.mood.model.Mood
 import com.androidace.echojournal.ui.newentry.TopicChip
 import com.androidace.echojournal.ui.recording.RecordingViewModel
 import com.androidace.echojournal.ui.theme.moodColorPaletteMap
+import com.androidace.echojournal.ui.theme.titleStyle
 import com.androidace.echojournal.util.formatMillis
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.sqrt
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onShowRecordingSheet: () -> Unit,
+    homeViewModel: HomeScreenViewModel = hiltViewModel(),
     viewModel: RecordingViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -108,6 +117,8 @@ fun HomeScreen(
 
     var onTapClicked by remember { mutableStateOf(false) }
     var onLongPressClicked by remember { mutableStateOf(false) }
+
+    val entries by homeViewModel.entriesByDay.collectAsStateWithLifecycle()
 
     // Launcher to request the RECORD_AUDIO permission
     val audioPermissionLauncher = rememberLauncherForActivityResult(
@@ -133,6 +144,11 @@ fun HomeScreen(
 
     // Example UI
     Scaffold(
+        topBar = {
+            TopAppBar(title = {
+                Text("Your EchoJournal", style = titleStyle)
+            })
+        },
         floatingActionButton = {
             AnimatedVisibility(!showRecording) {
                 Box(contentAlignment = Alignment.Center,
@@ -172,24 +188,11 @@ fun HomeScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn {
-            itemsIndexed(items = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)) { position, item ->
-                TimelineRow(
-                    TimelineEntry(
-                        id = 1,
-                        mood = Mood.PEACEFUL,
-                        title = "New Entry",
-                        description = "Book Reading",
-                        createdAt = LocalDate.now().toEpochDay(),
-                        topics = listOf(
-                            Topic(topicId = 1, name = "Android")
-                        ),
-                        audioPath = "",
-                        audioDuration = "00:00"
-                    ), position, 10
-                )
-            }
-        }
+
+        TimelineScreen(
+            entries = entries,
+            modifier = Modifier.padding(paddingValues)
+        )
         // Overlay the "recording UI" if showRecording == true
         if (showRecording) {
             RecordingUI(
@@ -205,6 +208,29 @@ fun HomeScreen(
                 }
             )
         }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun TimelineScreen(
+    entries: Map<LocalDate, List<TimelineEntry>>,
+    modifier: Modifier = Modifier
+) {
+    val sortedDates = entries.keys.sortedDescending()
+
+    LazyColumn(modifier = modifier) {
+        sortedDates.forEach { date ->
+            stickyHeader {
+                DayHeader(date = date)
+            }
+            itemsIndexed(entries[date] ?: emptyList()) { position, entry ->
+                TimelineRow(
+                    entry, position, entries[date]?.size ?: 0
+                )
+            }
+        }
+
     }
 }
 
@@ -443,10 +469,11 @@ fun DayHeader(date: LocalDate) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TimelineRow(entry: TimelineEntry, position: Int, totalItems: Int) {
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
+            .heightIn(max = 184.dp)
             .padding(horizontal = 16.dp)
     ) {
         // Left side: icon + timeline line
@@ -456,7 +483,7 @@ fun TimelineRow(entry: TimelineEntry, position: Int, totalItems: Int) {
             orientation = TimelineOrientation.Vertical,
             lineStyle = LineStyle.solid(
                 color = MaterialTheme.colorScheme.outlineVariant,
-                width = 2.dp
+                width = 1.dp
             ),
             marker = {
                 Image(
@@ -519,7 +546,7 @@ fun TimelineRow(entry: TimelineEntry, position: Int, totalItems: Int) {
                         modifier = Modifier.padding(top = 8.dp)
                     ) {
                         entry.topics.forEach { topic ->
-                            TopicChip(topic)
+                            TopicChip(topic, isCancelable = false)
                         }
                     }
                 }

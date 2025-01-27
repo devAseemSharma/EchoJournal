@@ -579,6 +579,7 @@ fun TopicsAutoCompleteField(
 @Composable
 fun TopicChip(
     topic: Topic,
+    isCancelable: Boolean = true,
     onRemove: () -> Unit = {}
 ) {
     AssistChip(
@@ -606,15 +607,17 @@ fun TopicChip(
         },
         onClick = {},
         trailingIcon = {
-            Icon(
-                imageVector = Icons.Filled.Close,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                contentDescription = "Clear topic",
-                modifier = Modifier
-                    .size(16.dp)
-                    .clickable {
-                        onRemove()
-                    })
+            if(isCancelable) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                    contentDescription = "Clear topic",
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clickable {
+                            onRemove()
+                        })
+            }
         },
         border = AssistChipDefaults.assistChipBorder(enabled = false, borderWidth = 0.dp),
         shape = RoundedCornerShape(65.dp),
