@@ -55,8 +55,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarColors
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,6 +70,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -153,16 +157,23 @@ fun HomeScreen(
         }
     }
 
-
-    // Example UI
     Scaffold(
         topBar = {
-
-            TopAppBar(title = {
-                Text("Your EchoJournal", style = titleStyle)
-            })
-
-
+            TopAppBar(
+                title = {
+                    Text("Your EchoJournal", style = titleStyle)
+                },
+                modifier = Modifier.background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0XFFD9E2FF).copy(alpha = 0.4f),
+                            Color(0XFFEEF0FF).copy(alpha = 0.4f)
+                        )
+                    )
+                ),
+                colors = TopAppBarDefaults.topAppBarColors()
+                    .copy(containerColor = Color.Transparent)
+            )
         },
         floatingActionButton = {
             AnimatedVisibility(!showRecording) {
@@ -201,13 +212,37 @@ fun HomeScreen(
                     )
                 }
             }
-        }
+        },
+        modifier = Modifier.background(
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0XFFD9E2FF).copy(alpha = 0.4f),
+                    Color(0XFFEEF0FF).copy(alpha = 0.4f)
+                )
+            )
+        )
     ) { paddingValues ->
-
-        Column(modifier = Modifier.padding(paddingValues)) {
+        Column(
+            modifier = Modifier
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0XFFD9E2FF).copy(alpha = 0.4f),
+                            Color(0XFFEEF0FF).copy(alpha = 0.4f)
+                        )
+                    )
+                )
+                .padding(paddingValues)
+        ) {
             FilterRow(
-                openMoodDropDown = { showMoodDropDown = true },
-                openTopicDropDown = { showTopicDropDown = true })
+                openMoodDropDown = {
+                    showMoodDropDown = true
+                    showTopicDropDown = false
+                },
+                openTopicDropDown = {
+                    showTopicDropDown = true
+                    showMoodDropDown = false
+                })
             TimelineScreen(
                 entries = entries
             )
@@ -254,6 +289,8 @@ fun HomeScreen(
             )
         }
     }
+
+
 }
 
 @Composable
@@ -263,7 +300,9 @@ fun FilterRow(
     modifier: Modifier = Modifier
 ) {
     Row {
+        Spacer(modifier = Modifier.width(16.dp))
         MoodOverlappingChip(emptyList(), openChipDropdown = openMoodDropDown)
+        Spacer(modifier = Modifier.width(4.dp))
         TopicOverlappingChip(emptyList(), openChipDropdown = openTopicDropDown)
     }
 
@@ -285,7 +324,7 @@ fun MoodOverlappingChip(
             ) {
                 if (listData.isEmpty()) {
                     Text(
-                        text = "All topics",
+                        text = "All Moods",
                         style = bodyStyle.copy(
                             color = MaterialTheme.colorScheme.secondary
                         )
@@ -296,8 +335,9 @@ fun MoodOverlappingChip(
         },
         onClick = openChipDropdown,
         border = if (!isPressed || listData.isNotEmpty()) AssistChipDefaults.assistChipBorder(
-            enabled = false,
-            borderWidth = 0.dp
+            enabled = true,
+            borderWidth = 1.dp,
+            borderColor = MaterialTheme.colorScheme.outlineVariant
         ) else AssistChipDefaults.assistChipBorder(
             enabled = true,
             borderWidth = 1.dp,
@@ -327,7 +367,7 @@ fun TopicOverlappingChip(
             ) {
                 if (listData.isEmpty()) {
                     Text(
-                        text = "All Moods",
+                        text = "All Topics",
                         style = bodyStyle.copy(
                             color = MaterialTheme.colorScheme.secondary
                         )
@@ -338,8 +378,9 @@ fun TopicOverlappingChip(
         },
         onClick = openChipDropdown,
         border = if (!isPressed || listData.isNotEmpty()) AssistChipDefaults.assistChipBorder(
-            enabled = false,
-            borderWidth = 0.dp
+            enabled = true,
+            borderWidth = 1.dp,
+            borderColor = MaterialTheme.colorScheme.outlineVariant
         ) else AssistChipDefaults.assistChipBorder(
             enabled = true,
             borderWidth = 1.dp,
@@ -500,7 +541,7 @@ fun TimelineScreen(
 
     LazyColumn(modifier = modifier) {
         sortedDates.forEach { date ->
-            stickyHeader {
+            item {
                 DayHeader(date = date)
             }
             itemsIndexed(entries[date] ?: emptyList()) { position, entry ->
@@ -735,7 +776,9 @@ fun DayHeader(date: LocalDate) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+            .background(
+                color = Color.Transparent
+            )
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Text(
