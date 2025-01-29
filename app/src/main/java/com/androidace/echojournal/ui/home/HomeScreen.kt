@@ -419,7 +419,7 @@ private fun TopicDropDown(
             elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
             colors = CardDefaults.cardColors()
                 .copy(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = Modifier.padding(end = 16.dp)
+            modifier = Modifier.padding(horizontal = 16.dp)
 
         ) {
             Column(
@@ -488,7 +488,7 @@ private fun MoodDropDown(
             elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
             colors = CardDefaults.cardColors()
                 .copy(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = Modifier.padding(end = 16.dp)
+            modifier = Modifier.padding(horizontal = 16.dp)
 
         ) {
             Column(
