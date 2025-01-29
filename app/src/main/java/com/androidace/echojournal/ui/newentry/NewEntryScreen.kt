@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -22,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -39,6 +37,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,7 +52,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -93,6 +91,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun NewEntryScreen(
     newEntry: NewEntry?,
+    onNavigateToHome: () -> Unit,
     viewModel: NewEntryViewModel = hiltViewModel()
 ) {
     val eJUiState by viewModel.eJUiStateFlow.collectAsStateWithLifecycle()
@@ -137,7 +136,9 @@ fun NewEntryScreen(
             viewModel.validate()
         },
         onCancel = {},
-        onSave = viewModel::onSaveEntry
+        onSave = {
+            viewModel.onSaveEntry { onNavigateToHome.invoke() }
+        }
     )
 }
 
@@ -165,7 +166,9 @@ internal fun NewEntryScreenContent(
 
     EJScreen(
         ejUiState = ejUiState,
-        loadingScreen = {},
+        loadingScreen = {
+            CircularProgressIndicator()
+        },
         bottomSheet = {
             if (bottomSheetState.isVisible) {
                 ModalBottomSheet(
@@ -482,93 +485,104 @@ fun TopicsAutoCompleteField(
     // 2) Show the popup below the TextField if `showPopup` is true
     if (showPopup && searchText.isNotEmpty()) {
         // A Box that covers the entire screen to detect outside clicks (dismiss on tap outside).
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Transparent) // or a semi-transparent scrim if preferred
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) {
-                    // Dismiss popup when user taps outside
-                    onClickOutside.invoke()
-                },
-            contentAlignment = Alignment.TopCenter
-        ) {
-            // The actual popup "container"
-            Card(
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-                colors = CardDefaults.cardColors()
-                    .copy(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.padding(end = 16.dp)
+        SearchDropDown(onClickOutside, filteredTopics, onTopicSelected, searchText, onCreateNewTopic)
+    }
+}
 
+@Composable
+private fun SearchDropDown(
+    onClickOutside: () -> Unit,
+    filteredTopics: List<Topic>,
+    onTopicSelected: (Topic) -> Unit,
+    searchText: String,
+    onCreateNewTopic: (String) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Transparent) // or a semi-transparent scrim if preferred
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                        // Constrain the height to a max of 300.dp
-                        .heightIn(max = 300.dp)
-                        // Make it scrollable if content grows beyond 300.dp
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    // 2A) Show matching topics
-                    filteredTopics.forEachIndexed { index, topic ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    onTopicSelected(topic)
+                // Dismiss popup when user taps outside
+                onClickOutside.invoke()
+            },
+        contentAlignment = Alignment.TopCenter
+    ) {
+        // The actual popup "container"
+        Card(
+            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+            colors = CardDefaults.cardColors()
+                .copy(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.padding(end = 16.dp)
 
-                                }
-                                .padding(horizontal = 16.dp, vertical = 12.dp)
-                        ) {
-                            Text(
-                                text = "#",
-                                style = bodyStyle.copy(
-                                    fontSize = 16.sp,
-                                    color = MaterialTheme.colorScheme.primary.copy(0.5f)
-                                ),
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = topic.name, style = bodyStyle.copy(
-                                    fontSize = 16.sp,
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
-                            )
-                        }
-                    }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    // Constrain the height to a max of 300.dp
+                    .heightIn(max = 300.dp)
+                    // Make it scrollable if content grows beyond 300.dp
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // 2A) Show matching topics
+                filteredTopics.forEachIndexed { index, topic ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onTopicSelected(topic)
 
-                    // 2B) If there's no exact match, offer to create a new topic
-                    val isExactMatch = filteredTopics.any {
-                        it.name.equals(searchText, ignoreCase = true)
+                            }
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        Text(
+                            text = "#",
+                            style = bodyStyle.copy(
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.primary.copy(0.5f)
+                            ),
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = topic.name, style = bodyStyle.copy(
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        )
                     }
-                    if (!isExactMatch && searchText.isNotEmpty()) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Start,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    onCreateNewTopic(searchText)
-                                }
-                                .padding(horizontal = 12.dp, vertical = 12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Add,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(end = 5.dp),
-                                contentDescription = "Add topic"
+                }
+
+                // 2B) If there's no exact match, offer to create a new topic
+                val isExactMatch = filteredTopics.any {
+                    it.name.equals(searchText, ignoreCase = true)
+                }
+                if (!isExactMatch && searchText.isNotEmpty()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Start,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onCreateNewTopic(searchText)
+                            }
+                            .padding(horizontal = 12.dp, vertical = 12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(end = 5.dp),
+                            contentDescription = "Add topic"
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Create ‘$searchText’", style = bodyStyle.copy(
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.primary
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Create ‘$searchText’", style = bodyStyle.copy(
-                                    fontSize = 16.sp,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            )
-                        }
+                        )
                     }
                 }
             }
@@ -607,7 +621,7 @@ fun TopicChip(
         },
         onClick = {},
         trailingIcon = {
-            if(isCancelable) {
+            if (isCancelable) {
                 Icon(
                     imageVector = Icons.Filled.Close,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),

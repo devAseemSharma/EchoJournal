@@ -17,6 +17,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -31,13 +32,22 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -68,6 +79,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -81,8 +93,10 @@ import com.androidace.echojournal.ui.home.model.TimelineEntry
 import com.androidace.echojournal.ui.mood.model.Mood
 import com.androidace.echojournal.ui.newentry.TopicChip
 import com.androidace.echojournal.ui.recording.RecordingViewModel
+import com.androidace.echojournal.ui.theme.bodyStyle
 import com.androidace.echojournal.ui.theme.moodColorPaletteMap
 import com.androidace.echojournal.ui.theme.titleStyle
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.sqrt
@@ -110,6 +124,14 @@ fun HomeScreen(
 
     val entries by homeViewModel.entriesByDay.collectAsStateWithLifecycle()
 
+    val listTopics by homeViewModel.listTopics.collectAsStateWithLifecycle()
+
+    var showMoodDropDown by remember { mutableStateOf(false) }
+    var showTopicDropDown by remember { mutableStateOf(false) }
+
+    var selectedMoods = remember { mutableListOf<Mood>() }
+    var selectedTopics = remember { mutableListOf<Topic>() }
+
     // Launcher to request the RECORD_AUDIO permission
     val audioPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -135,9 +157,12 @@ fun HomeScreen(
     // Example UI
     Scaffold(
         topBar = {
+
             TopAppBar(title = {
                 Text("Your EchoJournal", style = titleStyle)
             })
+
+
         },
         floatingActionButton = {
             AnimatedVisibility(!showRecording) {
@@ -179,10 +204,40 @@ fun HomeScreen(
         }
     ) { paddingValues ->
 
-        TimelineScreen(
-            entries = entries,
-            modifier = Modifier.padding(paddingValues)
-        )
+        Column(modifier = Modifier.padding(paddingValues)) {
+            FilterRow(
+                openMoodDropDown = { showMoodDropDown = true },
+                openTopicDropDown = { showTopicDropDown = true })
+            TimelineScreen(
+                entries = entries
+            )
+        }
+
+        if (showMoodDropDown) {
+            MoodDropDown(
+                onClickOutside = {
+                    showMoodDropDown = false
+                },
+                onMoodSelected = {},
+                filterMoods = homeViewModel.listMood,
+                modifier = Modifier.offset(y = paddingValues.calculateTopPadding() + 60.dp)
+            )
+        }
+
+        if (showTopicDropDown) {
+            TopicDropDown(
+                onClickOutside = {
+                    showTopicDropDown = false
+                },
+                onTopicSelected = {
+
+                },
+                filteredTopics = listTopics,
+                modifier = Modifier.offset(y = paddingValues.calculateTopPadding() + 60.dp)
+            )
+        }
+
+
         // Overlay the "recording UI" if showRecording == true
         if (showRecording) {
             RecordingUI(
@@ -197,6 +252,240 @@ fun HomeScreen(
                     showRecording = false
                 }
             )
+        }
+    }
+}
+
+@Composable
+fun FilterRow(
+    openMoodDropDown: () -> Unit,
+    openTopicDropDown: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row {
+        MoodOverlappingChip(emptyList(), openChipDropdown = openMoodDropDown)
+        TopicOverlappingChip(emptyList(), openChipDropdown = openTopicDropDown)
+    }
+
+}
+
+@Composable
+fun MoodOverlappingChip(
+    listData: List<Mood>,
+    openChipDropdown: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    AssistChip(
+        label = {
+            Row(
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (listData.isEmpty()) {
+                    Text(
+                        text = "All topics",
+                        style = bodyStyle.copy(
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    )
+                }
+            }
+
+        },
+        onClick = openChipDropdown,
+        border = if (!isPressed || listData.isNotEmpty()) AssistChipDefaults.assistChipBorder(
+            enabled = false,
+            borderWidth = 0.dp
+        ) else AssistChipDefaults.assistChipBorder(
+            enabled = true,
+            borderWidth = 1.dp,
+            borderColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
+        shape = RoundedCornerShape(65.dp),
+        interactionSource = interactionSource,
+        colors = if (!isPressed || listData.isNotEmpty()) AssistChipDefaults.assistChipColors(
+            containerColor = MaterialTheme.colorScheme.onPrimary
+        ) else AssistChipDefaults.assistChipColors(containerColor = Color(0XFFF2F2F7)),
+    )
+}
+
+@Composable
+fun TopicOverlappingChip(
+    listData: List<Topic>,
+    openChipDropdown: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    AssistChip(
+        label = {
+            Row(
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (listData.isEmpty()) {
+                    Text(
+                        text = "All Moods",
+                        style = bodyStyle.copy(
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    )
+                }
+            }
+
+        },
+        onClick = openChipDropdown,
+        border = if (!isPressed || listData.isNotEmpty()) AssistChipDefaults.assistChipBorder(
+            enabled = false,
+            borderWidth = 0.dp
+        ) else AssistChipDefaults.assistChipBorder(
+            enabled = true,
+            borderWidth = 1.dp,
+            borderColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
+        shape = RoundedCornerShape(65.dp),
+        interactionSource = interactionSource,
+        colors = if (!isPressed || listData.isNotEmpty()) AssistChipDefaults.assistChipColors(
+            containerColor = MaterialTheme.colorScheme.onPrimary
+        ) else AssistChipDefaults.assistChipColors(containerColor = Color(0XFFF2F2F7)),
+    )
+}
+
+@Composable
+private fun TopicDropDown(
+    onClickOutside: () -> Unit,
+    filteredTopics: List<Topic>,
+    onTopicSelected: (Topic) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .background(Color.Transparent)
+            .fillMaxSize()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) {
+                // Dismiss popup when user taps outside
+                onClickOutside.invoke()
+            },
+        contentAlignment = Alignment.TopCenter
+    ) {
+        // The actual popup "container"
+        Card(
+            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+            colors = CardDefaults.cardColors()
+                .copy(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.padding(end = 16.dp)
+
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    // Constrain the height to a max of 300.dp
+                    .heightIn(max = 300.dp)
+                    // Make it scrollable if content grows beyond 300.dp
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // 2A) Show matching topics
+                filteredTopics.forEachIndexed { index, topic ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onTopicSelected(topic)
+
+                            }
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        Text(
+                            text = "#",
+                            style = bodyStyle.copy(
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.primary.copy(0.5f)
+                            ),
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = topic.name, style = bodyStyle.copy(
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MoodDropDown(
+    onClickOutside: () -> Unit,
+    filterMoods: List<Mood>,
+    onMoodSelected: (Mood) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Transparent) // or a semi-transparent scrim if preferred
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) {
+                // Dismiss popup when user taps outside
+                onClickOutside.invoke()
+            },
+        contentAlignment = Alignment.TopCenter
+    ) {
+        // The actual popup "container"
+        Card(
+            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+            colors = CardDefaults.cardColors()
+                .copy(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.padding(end = 16.dp)
+
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    // Constrain the height to a max of 300.dp
+                    .heightIn(max = 300.dp)
+                    // Make it scrollable if content grows beyond 300.dp
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // 2A) Show matching topics
+                filterMoods.forEachIndexed { index, topic ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onMoodSelected(topic)
+                            }
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        Text(
+                            text = "#",
+                            style = bodyStyle.copy(
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.primary.copy(0.5f)
+                            ),
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = topic.name, style = bodyStyle.copy(
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -114,7 +114,13 @@ fun MainRoot() {
 
         composable<NewEntry> {
             val args = it.toRoute<NewEntry>()
-            NewEntryScreen(args)
+            NewEntryScreen(args, onNavigateToHome = {
+                navController.navigate(Home){
+                    popUpTo<NewEntry> {
+                        inclusive = true
+                    }
+                }
+            })
         }
 
         // Additional screens...

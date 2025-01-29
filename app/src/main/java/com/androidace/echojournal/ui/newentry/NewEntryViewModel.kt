@@ -131,7 +131,8 @@ class NewEntryViewModel @Inject constructor(
         }
     }
 
-    fun onSaveEntry() {
+    fun onSaveEntry(onSuccess:()->Unit) {
+        uiStateHandlerImpl.showLoader()
         viewModelScope.launch {
             val insertedId = newEntryRepository.insertNewEntryWithTopic(
                 title = _newScreenState.value.newEntryTitle,
@@ -141,7 +142,8 @@ class NewEntryViewModel @Inject constructor(
                 selectedTopics = _selectedTopic.value
             )
             if (insertedId > 0L) {
-                Log.d("Record Inserted", "RecordId:$insertedId")
+                uiStateHandlerImpl.hideLoader()
+               onSuccess.invoke()
             }
         }
     }
