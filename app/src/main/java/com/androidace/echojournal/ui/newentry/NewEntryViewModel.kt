@@ -27,9 +27,9 @@ import javax.inject.Inject
 @HiltViewModel
 class NewEntryViewModel @Inject constructor(
     private val audioRepository: AudioRepository,
+    private val playbackManager: AudioPlaybackManager,
     private val topicRepository: TopicRepository,
     private val newEntryRepository: NewEntryRepository,
-    private val playbackManager: AudioPlaybackManager,
     val uiStateHandlerImpl: UIStateHandlerImpl,
 ) : ViewModel(), UiStateHandler by uiStateHandlerImpl {
 

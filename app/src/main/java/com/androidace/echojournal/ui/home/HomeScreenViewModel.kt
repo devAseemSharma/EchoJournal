@@ -2,16 +2,21 @@ package com.androidace.echojournal.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.androidace.echojournal.audio.AudioPlaybackManager
+import com.androidace.echojournal.data.AudioRepository
+import com.androidace.echojournal.db.RecordedAudio
 import com.androidace.echojournal.db.Topic
 import com.androidace.echojournal.repository.NewEntryRepository
 import com.androidace.echojournal.repository.TopicRepository
 import com.androidace.echojournal.ui.home.model.TimelineEntry
 import com.androidace.echojournal.ui.mood.model.Mood
 import com.androidace.echojournal.ui.theme.moodColorPaletteMap
+import com.androidace.echojournal.util.formatMillis
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -23,8 +28,9 @@ import javax.inject.Inject
 class HomeScreenViewModel @Inject constructor(
     private val topicRepository: TopicRepository,
     private val newEntryRepository: NewEntryRepository,
+    private val audioRepository: AudioRepository,
+    private val playbackManager: AudioPlaybackManager,
 ) : ViewModel() {
-
 
     private var _timelineEntries: List<TimelineEntry> = emptyList()
 
@@ -48,6 +54,8 @@ class HomeScreenViewModel @Inject constructor(
     private var _selectedTopicsFilter =
         MutableStateFlow(mutableListOf<Topic>())
     val selectedTopicsFilter = _selectedTopicsFilter.asStateFlow()
+
+    private var currentLocalAudio: RecordedAudio? = null
 
     init {
         fetchEntriesByTimeLine()
@@ -163,6 +171,172 @@ class HomeScreenViewModel @Inject constructor(
             dropdownState.copy(isSelected = false)
         }
         filterEntriesByTopicsAndMood()
+    }
+
+    private fun loadAudio(newEntry: TimelineEntry) {
+        viewModelScope.launch {
+            try {
+                currentLocalAudio =
+                    audioRepository.loadAudioByContentId(newEntry.recordingId) ?: return@launch
+                currentLocalAudio?.let {
+                    playbackManager.initializePlayer(it)
+                }
+                launch { observePlaybackEvents(newEntry) }
+                updatePlaybackState(newEntry)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun updatePlaybackState(newEntry: TimelineEntry) {
+        if (currentLocalAudio?.fileUri != newEntry.audioPath) {
+            loadAudio(newEntry)
+        } else {
+            if (!newEntry.audioWaveFormState.isPlaying) {
+                _timelineEntries = _timelineEntries.map {
+                    if (it == newEntry) {
+                        it.copy(
+                            audioWaveFormState = it.audioWaveFormState.copy(
+                                isPlaying = true,
+                            )
+                        )
+                    } else {
+                        it
+                    }
+                }
+                _entriesByDay.value = _timelineEntries.groupBy {
+                    Instant.ofEpochMilli(it.createdAt)
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDate()
+                }
+                playbackManager.play()
+            } else {
+                _timelineEntries = _timelineEntries.map {
+                    if (it == newEntry) {
+                        it.copy(
+                            audioWaveFormState = it.audioWaveFormState.copy(
+                                isPlaying = false,
+                            )
+                        )
+                    } else {
+                        it
+                    }
+                }
+                _entriesByDay.value = _timelineEntries.groupBy {
+                    Instant.ofEpochMilli(it.createdAt)
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDate()
+                }
+                playbackManager.pause()
+            }
+        }
+    }
+
+
+    private fun observePlaybackEvents(newEntry: TimelineEntry) {
+        viewModelScope.launch {
+            playbackManager.progressFlow.collectLatest {
+                when (it) {
+                    is AudioPlaybackManager.Event.PositionChanged -> updatePlaybackProgress(
+                        it.position,
+                        newEntry
+                    )
+
+                    is AudioPlaybackManager.Event.PlayingChanged -> updatePlayingState(
+                        it.isPlaying,
+                        newEntry
+                    )
+
+                    AudioPlaybackManager.Event.OnPlayingComplete -> resetPlayer(newEntry)
+                }
+            }
+        }
+
+    }
+
+    private fun updatePlaybackProgress(position: Long, newEntry: TimelineEntry) {
+
+        val audio = currentLocalAudio ?: return
+        val progress = position.toFloat() / audio.timestamp
+        _entriesByDay.value = _timelineEntries.map {
+            return@map if (it == newEntry) {
+                it.copy(
+                    audioWaveFormState = it.audioWaveFormState.copy(
+                        progress = progress,
+                        seekDuration = formatMillis(position)
+                    )
+                )
+            } else {
+                it
+            }
+        }.groupBy {
+            Instant.ofEpochMilli(it.createdAt)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+        }
+    }
+
+    private fun updatePlayingState(isPlaying: Boolean, newEntry: TimelineEntry) {
+        _timelineEntries = _timelineEntries.map {
+            if (it == newEntry) {
+                it.copy(audioWaveFormState = it.audioWaveFormState.copy(isPlaying = isPlaying))
+            } else {
+                it
+            }
+        }
+        _entriesByDay.value = _timelineEntries.groupBy {
+            Instant.ofEpochMilli(it.createdAt)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+        }
+    }
+
+    private fun resetPlayer(newEntry: TimelineEntry) {
+        _timelineEntries = _timelineEntries.map {
+            if (it == newEntry) {
+                it.copy(
+                    audioWaveFormState = it.audioWaveFormState.copy(
+                        isPlaying = false, progress = 0f,
+                        seekDuration = "00:00",
+                    )
+                )
+            } else {
+                it
+            }
+        }
+        _entriesByDay.value = _timelineEntries.groupBy {
+            Instant.ofEpochMilli(it.createdAt)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+        }
+    }
+
+
+    fun onProgressChange(progress: Float, entry: TimelineEntry) {
+        val position = currentLocalAudio?.timestamp?.times(progress)?.toLong() ?: 0L
+        playbackManager.seekTo(position)
+
+        _entriesByDay.value = _timelineEntries.map {
+            return@map if (it == entry) {
+                it.copy(
+                    audioWaveFormState = it.audioWaveFormState.copy(
+                        progress = progress,
+                    )
+                )
+            } else {
+                it.copy(
+                    audioWaveFormState = it.audioWaveFormState.copy(
+                        isPlaying = false, progress = 0f,
+                        seekDuration = "00:00",
+                    )
+                )
+            }
+        }.groupBy {
+            Instant.ofEpochMilli(it.createdAt)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+        }
     }
 
 

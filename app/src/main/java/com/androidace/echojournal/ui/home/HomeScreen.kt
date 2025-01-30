@@ -71,16 +71,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
@@ -91,6 +94,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidace.echojournal.R
+import com.androidace.echojournal.audio.waveform.AudioWaveform
 import com.androidace.echojournal.db.Topic
 import com.androidace.echojournal.ui.common.timeline.LineStyle
 import com.androidace.echojournal.ui.common.timeline.Timeline
@@ -99,6 +103,8 @@ import com.androidace.echojournal.ui.common.timeline.getLineType
 import com.androidace.echojournal.ui.home.model.TimelineEntry
 import com.androidace.echojournal.ui.mood.model.Mood
 import com.androidace.echojournal.ui.newentry.TopicChip
+import com.androidace.echojournal.ui.newentry.model.AudioWaveFormState
+import com.androidace.echojournal.ui.newentry.model.NewEntryScreenState
 import com.androidace.echojournal.ui.recording.RecordingViewModel
 import com.androidace.echojournal.ui.theme.bodyStyle
 import com.androidace.echojournal.ui.theme.moodColorPaletteMap
@@ -168,14 +174,21 @@ fun HomeScreen(
                 title = {
                     Text("Your EchoJournal", style = titleStyle)
                 },
-                modifier = Modifier.background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0XFFD9E2FF).copy(alpha = 0.4f),
-                            Color(0XFFEEF0FF).copy(alpha = 0.4f)
+                modifier = Modifier
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0XFFD9E2FF).copy(alpha = 0.4f),
+                                Color(0XFFEEF0FF).copy(alpha = 0.4f)
+                            )
                         )
                     )
-                ),
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }) {
+                        if (showMoodDropDown) showMoodDropDown = false
+                        if (showTopicDropDown) showTopicDropDown = false
+                    },
                 colors = TopAppBarDefaults.topAppBarColors()
                     .copy(containerColor = Color.Transparent)
             )
@@ -262,7 +275,14 @@ fun HomeScreen(
                 }
             )
             TimelineScreen(
-                entries = entries
+                entries = entries,
+                onProgressChange = { progress, entry ->
+                    homeViewModel.onProgressChange(
+                        progress,
+                        entry
+                    )
+                },
+                onPlayerMediaClick = homeViewModel::updatePlaybackState
             )
         }
 
@@ -692,6 +712,8 @@ private fun MoodDropDown(
 @Composable
 fun TimelineScreen(
     entries: Map<LocalDate, List<TimelineEntry>>,
+    onProgressChange: (Float, TimelineEntry) -> Unit,
+    onPlayerMediaClick: (TimelineEntry) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val sortedDates = entries.keys.sortedDescending()
@@ -703,7 +725,11 @@ fun TimelineScreen(
             }
             itemsIndexed(entries[date] ?: emptyList()) { position, entry ->
                 TimelineRow(
-                    entry, position, entries[date]?.size ?: 0
+                    entry = entry,
+                    position = position,
+                    totalItems = entries[date]?.size ?: 0,
+                    onProgressChange = { onProgressChange.invoke(it, entry) },
+                    onPlayerMediaClick = { onPlayerMediaClick.invoke(entry) }
                 )
             }
         }
@@ -947,12 +973,18 @@ fun DayHeader(date: LocalDate) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun TimelineRow(entry: TimelineEntry, position: Int, totalItems: Int) {
+fun TimelineRow(
+    entry: TimelineEntry,
+    position: Int,
+    totalItems: Int,
+    onProgressChange: (Float) -> Unit,
+    onPlayerMediaClick: () -> Unit
+) {
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(max = 184.dp)
+            .heightIn(max = 210.dp)
             .padding(horizontal = 16.dp)
     ) {
         // Left side: icon + timeline line
@@ -975,63 +1007,132 @@ fun TimelineRow(entry: TimelineEntry, position: Int, totalItems: Int) {
         )
 
         // Right side: the content card
-        Card(
-            modifier = Modifier
-                .padding(start = 8.dp)
-                .fillMaxWidth(),
-            colors = CardDefaults.cardColors().copy(
-                containerColor = MaterialTheme.colorScheme.onPrimary
-            ),
-            shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(4.dp)
-        ) {
-            Column(
+        Column {
+            Card(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
+                    .padding(start = 8.dp)
+                    .fillMaxWidth(),
+                colors = CardDefaults.cardColors().copy(
+                    containerColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(4.dp)
             ) {
-                // Title
-                Text(
-                    text = entry.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-
-                // Audio player row (placeholder or custom UI)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_play),
-                        contentDescription = null,
-                        tint = moodColorPaletteMap[entry.mood]?.darkColor
-                            ?: MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = entry.audioDuration)
-                }
-
-                // Optional: show partial or full description
-                if (!entry.description.isNullOrBlank()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                ) {
+                    // Title
                     Text(
-                        text = entry.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis
+                        text = entry.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(bottom = 4.dp)
                     )
-                }
 
-                // Topics row
-                if (entry.topics.isNotEmpty()) {
-                    FlowRow(
-                        modifier = Modifier.padding(top = 8.dp)
+                    // Audio player row (placeholder or custom UI)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .background(
+                                color = moodColorPaletteMap[entry.mood]?.lightBgColor
+                                    ?: MaterialTheme.colorScheme.inverseOnSurface,
+                                shape = RoundedCornerShape(45.dp)
+                            )
                     ) {
-                        entry.topics.forEach { topic ->
-                            TopicChip(topic, isCancelable = false)
+                        Box(modifier = Modifier.weight(0.20f)) {
+                            Box(contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .padding(start = 4.dp)
+                                    .size(38.dp)
+                                    .shadow(elevation = 1.dp, shape = CircleShape)
+                                    .background(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                    .clickable {
+                                        onPlayerMediaClick.invoke()
+                                    }
+                            ) {
+                                Icon(
+                                    painter = if (!entry.audioWaveFormState.isPlaying) painterResource(
+                                        R.drawable.ic_play
+                                    ) else painterResource(R.drawable.ic_pause),
+                                    contentDescription = "Play Icon",
+                                    modifier = Modifier.size(14.dp),
+                                    tint = moodColorPaletteMap[entry.mood]?.darkColor
+                                        ?: MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        AudioWaveform(
+                            amplitudes = entry.audioWaveFormState.amplitudes,
+                            onProgressChange = onProgressChange,
+                            progress = entry.audioWaveFormState.progress,
+                            spikePadding = 2.dp,
+                            spikeWidth = 4.dp,
+                            spikeRadius = 3.dp,
+                            waveformBrush = SolidColor(
+                                moodColorPaletteMap[entry.mood]?.lightColor
+                                    ?: Color.White
+                            ),
+                            progressBrush = SolidColor(
+                                moodColorPaletteMap[entry.mood]?.darkColor
+                                    ?: MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier
+                                .heightIn(min = 25.dp, max = 38.dp)
+                                .padding(vertical = 5.dp)
+                                .weight(1.1f)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.weight(0.38f)
+                        ) {
+                            TimeDuration(entry)
+                        }
+                    }
+
+                    // Optional: show partial or full description
+                    if (!entry.description.isNullOrBlank()) {
+                        Text(
+                            text = entry.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    // Topics row
+                    if (entry.topics.isNotEmpty()) {
+                        FlowRow(
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
+                            entry.topics.forEach { topic ->
+                                TopicChip(topic, isCancelable = false)
+                            }
                         }
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(8.dp))
         }
+
     }
+}
+
+@Composable
+fun TimeDuration(state: TimelineEntry) {
+    Text(
+        "${state.audioWaveFormState.seekDuration}/${state.audioWaveFormState.totalDuration}",
+        style = bodyStyle.copy(
+            fontSize = 12.sp,
+            fontWeight = FontWeight.W400,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+    )
 }
 
 
@@ -1062,8 +1163,10 @@ private fun PreviewTimelineRow() {
                 Topic(topicId = 1, name = "Android")
             ),
             audioPath = "",
-            audioDuration = "00:00"
-        ), 0, 3
+            audioDuration = "00:00",
+            recordingId = 0,
+            audioWaveFormState = AudioWaveFormState()
+        ), 0, 3, onProgressChange = {}, onPlayerMediaClick = {}
     )
 }
 
