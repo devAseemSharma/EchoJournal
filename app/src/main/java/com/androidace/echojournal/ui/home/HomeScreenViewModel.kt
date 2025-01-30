@@ -12,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -31,15 +32,35 @@ class HomeScreenViewModel @Inject constructor(
 
     val entriesByDay = _entriesByDay.asStateFlow()
 
-    private var _listTopics: MutableStateFlow<List<Topic>> = MutableStateFlow(emptyList())
+    private var _listTopics: MutableStateFlow<List<DropdownState<Topic>>> =
+        MutableStateFlow(emptyList())
     val listTopics = _listTopics.asStateFlow()
 
-    val listMood =
-        persistentListOf(Mood.STRESSED, Mood.SAD, Mood.NEUTRAL, Mood.PEACEFUL, Mood.EXCITED)
+    private var _listMood: MutableStateFlow<List<DropdownState<Mood>>> =
+        MutableStateFlow(emptyList())
+    val listMood = _listMood.asStateFlow()
+
+
+    private var _selectedMoodFilter =
+        MutableStateFlow(mutableListOf<Mood>())
+    val selectedMoodFilter = _selectedMoodFilter.asStateFlow()
+
+    private var _selectedTopicsFilter =
+        MutableStateFlow(mutableListOf<Topic>())
+    val selectedTopicsFilter = _selectedTopicsFilter.asStateFlow()
 
     init {
         fetchEntriesByTimeLine()
         fetchSavedTopics()
+        createMoodDropdownList()
+    }
+
+    private fun createMoodDropdownList() {
+        val moodList =
+            persistentListOf(Mood.STRESSED, Mood.SAD, Mood.NEUTRAL, Mood.PEACEFUL, Mood.EXCITED)
+        _listMood.value = moodList.map {
+            DropdownState(it, isSelected = false)
+        }
     }
 
     private fun fetchEntriesByTimeLine() {
@@ -55,9 +76,72 @@ class HomeScreenViewModel @Inject constructor(
 
     private fun fetchSavedTopics() {
         viewModelScope.launch {
-            _listTopics.value = topicRepository.getAllTopics()
+            val topics = topicRepository.getAllTopics()
+            _listTopics.value = topics.map {
+                DropdownState(it, isSelected = false)
+            }
+        }
+    }
+
+    fun addMoodFilter(mood: Mood) {
+        if (selectedMoodFilter.value.contains(mood)) {
+            _selectedMoodFilter.value = _selectedMoodFilter.value.filterNot {
+                it == mood
+            }.toMutableList()
+        } else {
+            val list = mutableListOf<Mood>()
+            list.addAll(_selectedMoodFilter.value)
+            list.add(mood)
+            _selectedMoodFilter.value = list
+        }
+
+        _listMood.value = listMood.value.map { dropdownState ->
+            return@map if (dropdownState.data == mood) {
+                dropdownState.copy(isSelected = dropdownState.isSelected.not())
+            } else {
+                dropdownState
+            }
+        }
+    }
+
+    fun addTopicFilter(topic: Topic) {
+        if (selectedTopicsFilter.value.contains(topic)) {
+            _selectedTopicsFilter.value = _selectedTopicsFilter.value.filterNot {
+                it == topic
+            }.toMutableList()
+        } else {
+            val list = mutableListOf<Topic>()
+            list.addAll(_selectedTopicsFilter.value)
+            list.add(topic)
+            _selectedTopicsFilter.value = list
+        }
+        _listTopics.value = listTopics.value.map { dropdownState ->
+            return@map if (dropdownState.data == topic) {
+                dropdownState.copy(isSelected = dropdownState.isSelected.not())
+            } else {
+                dropdownState
+            }
+        }
+    }
+
+    fun clearMoodFilters() {
+        _selectedMoodFilter.value = mutableListOf()
+        _listMood.value = listMood.value.map { dropdownState ->
+            dropdownState.copy(isSelected = false)
+        }
+    }
+
+    fun clearTopicsFilters() {
+        _selectedTopicsFilter.value = mutableListOf()
+        _listTopics.value = listTopics.value.map { dropdownState ->
+            dropdownState.copy(isSelected = false)
         }
     }
 
 
 }
+
+data class DropdownState<T>(
+    val data: T,
+    val isSelected: Boolean = false
+)

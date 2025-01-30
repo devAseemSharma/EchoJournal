@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -45,6 +46,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -72,6 +74,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -129,12 +132,14 @@ fun HomeScreen(
     val entries by homeViewModel.entriesByDay.collectAsStateWithLifecycle()
 
     val listTopics by homeViewModel.listTopics.collectAsStateWithLifecycle()
+    val listMood by homeViewModel.listMood.collectAsStateWithLifecycle()
+
+    val selectedMoods by homeViewModel.selectedMoodFilter.collectAsStateWithLifecycle()
+    val selectedTopics by homeViewModel.selectedTopicsFilter.collectAsStateWithLifecycle()
 
     var showMoodDropDown by remember { mutableStateOf(false) }
     var showTopicDropDown by remember { mutableStateOf(false) }
 
-    var selectedMoods = remember { mutableListOf<Mood>() }
-    var selectedTopics = remember { mutableListOf<Topic>() }
 
     // Launcher to request the RECORD_AUDIO permission
     val audioPermissionLauncher = rememberLauncherForActivityResult(
@@ -235,6 +240,10 @@ fun HomeScreen(
                 .padding(paddingValues)
         ) {
             FilterRow(
+                filterTopicList = selectedTopics,
+                filterMoodList = selectedMoods,
+                showMoodDropDown = showMoodDropDown,
+                showTopicDropDown = showTopicDropDown,
                 openMoodDropDown = {
                     showMoodDropDown = true
                     showTopicDropDown = false
@@ -242,7 +251,16 @@ fun HomeScreen(
                 openTopicDropDown = {
                     showTopicDropDown = true
                     showMoodDropDown = false
-                })
+                },
+                onClearTopicFilters = {
+                    homeViewModel.clearTopicsFilters()
+                    showTopicDropDown = false
+                },
+                onClearMoodFilters = {
+                    homeViewModel.clearMoodFilters()
+                    showMoodDropDown = false
+                }
+            )
             TimelineScreen(
                 entries = entries
             )
@@ -253,8 +271,8 @@ fun HomeScreen(
                 onClickOutside = {
                     showMoodDropDown = false
                 },
-                onMoodSelected = {},
-                filterMoods = homeViewModel.listMood,
+                onMoodSelected = homeViewModel::addMoodFilter,
+                filterMoods = listMood,
                 modifier = Modifier.offset(y = paddingValues.calculateTopPadding() + 60.dp)
             )
         }
@@ -264,9 +282,7 @@ fun HomeScreen(
                 onClickOutside = {
                     showTopicDropDown = false
                 },
-                onTopicSelected = {
-
-                },
+                onTopicSelected = homeViewModel::addTopicFilter,
                 filteredTopics = listTopics,
                 modifier = Modifier.offset(y = paddingValues.calculateTopPadding() + 60.dp)
             )
@@ -295,15 +311,31 @@ fun HomeScreen(
 
 @Composable
 fun FilterRow(
+    filterMoodList: List<Mood>,
+    filterTopicList: List<Topic>,
     openMoodDropDown: () -> Unit,
     openTopicDropDown: () -> Unit,
+    onClearMoodFilters: () -> Unit,
+    onClearTopicFilters: () -> Unit,
+    showMoodDropDown: Boolean,
+    showTopicDropDown: Boolean,
     modifier: Modifier = Modifier
 ) {
     Row {
         Spacer(modifier = Modifier.width(16.dp))
-        MoodOverlappingChip(emptyList(), openChipDropdown = openMoodDropDown)
+        MoodOverlappingChip(
+            filterMoodList,
+            showMoodDropDown,
+            onClearFilters = onClearMoodFilters,
+            openChipDropdown = openMoodDropDown
+        )
         Spacer(modifier = Modifier.width(4.dp))
-        TopicOverlappingChip(emptyList(), openChipDropdown = openTopicDropDown)
+        TopicOverlappingChip(
+            filterTopicList,
+            showTopicDropDown,
+            onClearFilter = onClearTopicFilters,
+            openChipDropdown = openTopicDropDown
+        )
     }
 
 }
@@ -311,16 +343,17 @@ fun FilterRow(
 @Composable
 fun MoodOverlappingChip(
     listData: List<Mood>,
+    showMoodDropDown: Boolean,
     openChipDropdown: () -> Unit,
+    onClearFilters: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
     AssistChip(
         label = {
             Row(
                 horizontalArrangement = Arrangement.Start,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.heightIn(min = 32.dp)
             ) {
                 if (listData.isEmpty()) {
                     Text(
@@ -329,41 +362,55 @@ fun MoodOverlappingChip(
                             color = MaterialTheme.colorScheme.secondary
                         )
                     )
+                } else {
+                    MoodGroupingText(listData)
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Icon(
+                        imageVector = Icons.Filled.Clear,
+                        contentDescription = "Clear filters",
+                        tint = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clickable {
+                                onClearFilters.invoke()
+                            }
+                    )
                 }
             }
 
         },
         onClick = openChipDropdown,
-        border = if (!isPressed || listData.isNotEmpty()) AssistChipDefaults.assistChipBorder(
+        modifier = modifier.then(Modifier.heightIn(min = 32.dp)),
+        border = AssistChipDefaults.assistChipBorder(
             enabled = true,
             borderWidth = 1.dp,
-            borderColor = MaterialTheme.colorScheme.outlineVariant
-        ) else AssistChipDefaults.assistChipBorder(
-            enabled = true,
-            borderWidth = 1.dp,
-            borderColor = MaterialTheme.colorScheme.onPrimaryContainer
+            borderColor = if (!showMoodDropDown && listData.isEmpty())
+                MaterialTheme.colorScheme.outlineVariant
+            else if (showMoodDropDown)
+                MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.outlineVariant
         ),
         shape = RoundedCornerShape(65.dp),
-        interactionSource = interactionSource,
-        colors = if (!isPressed || listData.isNotEmpty()) AssistChipDefaults.assistChipColors(
-            containerColor = MaterialTheme.colorScheme.onPrimary
-        ) else AssistChipDefaults.assistChipColors(containerColor = Color(0XFFF2F2F7)),
+        colors = AssistChipDefaults.assistChipColors(
+            if (!showMoodDropDown && listData.isEmpty()) Color.Transparent else MaterialTheme.colorScheme.onPrimary,
+        )
     )
 }
 
 @Composable
 fun TopicOverlappingChip(
     listData: List<Topic>,
+    showTopicDropDown: Boolean,
     openChipDropdown: () -> Unit,
+    onClearFilter: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
     AssistChip(
         label = {
             Row(
                 horizontalArrangement = Arrangement.Start,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.heightIn(min = 32.dp)
             ) {
                 if (listData.isEmpty()) {
                     Text(
@@ -372,32 +419,109 @@ fun TopicOverlappingChip(
                             color = MaterialTheme.colorScheme.secondary
                         )
                     )
+                } else {
+                    TopicGroupingText(listData)
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Icon(
+                        imageVector = Icons.Filled.Clear,
+                        contentDescription = "Clear filters",
+                        tint = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clickable {
+                                onClearFilter.invoke()
+                            }
+                    )
                 }
             }
 
         },
         onClick = openChipDropdown,
-        border = if (!isPressed || listData.isNotEmpty()) AssistChipDefaults.assistChipBorder(
+        border = AssistChipDefaults.assistChipBorder(
             enabled = true,
             borderWidth = 1.dp,
-            borderColor = MaterialTheme.colorScheme.outlineVariant
-        ) else AssistChipDefaults.assistChipBorder(
-            enabled = true,
-            borderWidth = 1.dp,
-            borderColor = MaterialTheme.colorScheme.onPrimaryContainer
+            borderColor = if (!showTopicDropDown && listData.isEmpty())
+                MaterialTheme.colorScheme.outlineVariant
+            else if (showTopicDropDown)
+                MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.outlineVariant
         ),
         shape = RoundedCornerShape(65.dp),
-        interactionSource = interactionSource,
-        colors = if (!isPressed || listData.isNotEmpty()) AssistChipDefaults.assistChipColors(
-            containerColor = MaterialTheme.colorScheme.onPrimary
-        ) else AssistChipDefaults.assistChipColors(containerColor = Color(0XFFF2F2F7)),
+        colors = AssistChipDefaults.assistChipColors(
+            containerColor = if (!showTopicDropDown && listData.isEmpty()) Color.Transparent else MaterialTheme.colorScheme.onPrimary,
+        )
     )
 }
 
 @Composable
+fun MoodGroupingText(listMood: List<Mood>, modifier: Modifier = Modifier) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (listMood.size > 2) {
+            Row(modifier = Modifier.padding(vertical = 5.dp)) {
+                listMood.forEachIndexed { index, mood ->
+                    if (index < 2) {
+                        Image(
+                            painter = painterResource(mood.activeResId),
+                            contentDescription = "MoodFilters",
+                            modifier = if (index == 0) Modifier.size(20.dp) else Modifier
+                                .offset(x = (-4).dp)
+                                .size(20.dp)
+                        )
+                    }
+                }
+                listMood.forEachIndexed { index, mood ->
+                    if (index < 2) {
+                        Text(text = if (index == 0) mood.displayName else ", ${mood.displayName}")
+                    }
+                }
+                Text(text = " +1")
+            }
+        } else {
+            Row {
+                listMood.forEachIndexed { index, mood ->
+                    Image(
+                        painter = painterResource(mood.activeResId),
+                        contentDescription = "MoodFilters",
+                        modifier = if (index == 0) Modifier.size(20.dp) else Modifier
+                            .offset(x = (-4).dp)
+                            .size(20.dp)
+                    )
+                }
+                listMood.forEachIndexed { index, mood ->
+                    Text(text = if (index == 0) mood.displayName else ", ${mood.displayName}")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TopicGroupingText(listTopic: List<Topic>, modifier: Modifier = Modifier) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (listTopic.size > 2) {
+            Row(modifier = Modifier.padding(vertical = 5.dp)) {
+                listTopic.forEachIndexed { index, topic ->
+                    if (index < 2) {
+                        Text(text = if (index == 0) topic.name else ", ${topic.name}")
+                    }
+                }
+                Text(text = " +1")
+            }
+        } else {
+            Row {
+                listTopic.forEachIndexed { index, topic ->
+                    Text(text = if (index == 0) topic.name else ", ${topic.name}")
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
 private fun TopicDropDown(
     onClickOutside: () -> Unit,
-    filteredTopics: List<Topic>,
+    filteredTopics: List<DropdownState<Topic>>,
     onTopicSelected: (Topic) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -425,38 +549,56 @@ private fun TopicDropDown(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = 8.dp, horizontal = 4.dp)
                     // Constrain the height to a max of 300.dp
                     .heightIn(max = 300.dp)
                     // Make it scrollable if content grows beyond 300.dp
                     .verticalScroll(rememberScrollState())
             ) {
                 // 2A) Show matching topics
-                filteredTopics.forEachIndexed { index, topic ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onTopicSelected(topic)
+                filteredTopics.forEach { dropDownData ->
+                    Column {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onTopicSelected(dropDownData.data)
 
-                            }
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                    ) {
-                        Text(
-                            text = "#",
-                            style = bodyStyle.copy(
-                                fontSize = 16.sp,
-                                color = MaterialTheme.colorScheme.primary.copy(0.5f)
-                            ),
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = topic.name, style = bodyStyle.copy(
-                                fontSize = 16.sp,
-                                color = MaterialTheme.colorScheme.secondary
+                                }
+                                .background(
+                                    color = if (dropDownData.isSelected) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent,
+                                    shape = if (dropDownData.isSelected) RoundedCornerShape(size = 8.dp) else RectangleShape
+                                )
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                text = "#",
+                                style = bodyStyle.copy(
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.primary.copy(0.5f)
+                                ),
                             )
-                        )
+                            Text(
+                                text = dropDownData.data.name, style = bodyStyle.copy(
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.secondary
+                                ),
+                                modifier = Modifier
+                                    .padding(4.dp)
+                                    .weight(1.0f)
+                            )
+                            if (dropDownData.isSelected) {
+                                Image(
+                                    painter = painterResource(R.drawable.ic_trailing_tick),
+                                    contentDescription = "Selected Item"
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
                     }
+
                 }
             }
         }
@@ -466,7 +608,7 @@ private fun TopicDropDown(
 @Composable
 private fun MoodDropDown(
     onClickOutside: () -> Unit,
-    filterMoods: List<Mood>,
+    filterMoods: List<DropdownState<Mood>>,
     onMoodSelected: (Mood) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -494,36 +636,51 @@ private fun MoodDropDown(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = 8.dp, horizontal = 4.dp)
                     // Constrain the height to a max of 300.dp
                     .heightIn(max = 300.dp)
                     // Make it scrollable if content grows beyond 300.dp
                     .verticalScroll(rememberScrollState())
             ) {
                 // 2A) Show matching topics
-                filterMoods.forEachIndexed { index, topic ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onMoodSelected(topic)
-                            }
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                    ) {
-                        Text(
-                            text = "#",
-                            style = bodyStyle.copy(
-                                fontSize = 16.sp,
-                                color = MaterialTheme.colorScheme.primary.copy(0.5f)
-                            ),
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = topic.name, style = bodyStyle.copy(
-                                fontSize = 16.sp,
-                                color = MaterialTheme.colorScheme.secondary
+                filterMoods.forEach { dropDownData ->
+                    Column {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    color = if (dropDownData.isSelected) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent,
+                                    shape = if (dropDownData.isSelected) RoundedCornerShape(size = 8.dp) else RectangleShape
+                                )
+                                .clickable {
+                                    onMoodSelected(dropDownData.data)
+                                }
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            Image(
+                                painter = painterResource(dropDownData.data.activeResId),
+                                modifier = Modifier.size(24.dp),
+                                contentDescription = "Mood Item"
                             )
-                        )
+                            Text(
+                                text = dropDownData.data.displayName, style = bodyStyle.copy(
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.secondary
+                                ),
+                                modifier = Modifier
+                                    .padding(4.dp)
+                                    .weight(1.0f)
+                            )
+                            if (dropDownData.isSelected) {
+                                Image(
+                                    painter = painterResource(R.drawable.ic_trailing_tick),
+                                    contentDescription = "Selected Item"
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
                     }
                 }
             }
@@ -908,4 +1065,13 @@ private fun PreviewTimelineRow() {
             audioDuration = "00:00"
         ), 0, 3
     )
+}
+
+@Preview
+@Composable
+fun DropDownPreview() {
+    MoodDropDown(
+        onClickOutside = {},
+        filterMoods = listOf(DropdownState(Mood.PEACEFUL, isSelected = false)),
+        onMoodSelected = {})
 }
