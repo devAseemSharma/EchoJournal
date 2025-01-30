@@ -74,6 +74,29 @@ class HomeScreenViewModel @Inject constructor(
         }
     }
 
+    private fun filterEntriesByTopicsAndMood() {
+        viewModelScope.launch {
+            val filteredTimeLines =
+                if (_selectedMoodFilter.value.isNotEmpty() && _selectedTopicsFilter.value.isNotEmpty()) {
+                    newEntryRepository.getTimelineEntriesByTopicList(_selectedTopicsFilter.value)
+                        .filter { _selectedMoodFilter.value.contains(it.mood) }
+                } else if (_selectedMoodFilter.value.isNotEmpty()) {
+                    newEntryRepository.getTimelineEntries()
+                        .filter { _selectedMoodFilter.value.contains(it.mood) }
+                } else if (_selectedTopicsFilter.value.isNotEmpty()) {
+                    newEntryRepository.getTimelineEntriesByTopicList(_selectedTopicsFilter.value)
+                } else {
+                    newEntryRepository.getTimelineEntries()
+                }
+            _timelineEntries = filteredTimeLines
+            _entriesByDay.value = _timelineEntries.groupBy {
+                Instant.ofEpochMilli(it.createdAt)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+            }
+        }
+    }
+
     private fun fetchSavedTopics() {
         viewModelScope.launch {
             val topics = topicRepository.getAllTopics()
@@ -102,6 +125,7 @@ class HomeScreenViewModel @Inject constructor(
                 dropdownState
             }
         }
+        filterEntriesByTopicsAndMood()
     }
 
     fun addTopicFilter(topic: Topic) {
@@ -122,6 +146,7 @@ class HomeScreenViewModel @Inject constructor(
                 dropdownState
             }
         }
+        filterEntriesByTopicsAndMood()
     }
 
     fun clearMoodFilters() {
@@ -129,6 +154,7 @@ class HomeScreenViewModel @Inject constructor(
         _listMood.value = listMood.value.map { dropdownState ->
             dropdownState.copy(isSelected = false)
         }
+        filterEntriesByTopicsAndMood()
     }
 
     fun clearTopicsFilters() {
@@ -136,6 +162,7 @@ class HomeScreenViewModel @Inject constructor(
         _listTopics.value = listTopics.value.map { dropdownState ->
             dropdownState.copy(isSelected = false)
         }
+        filterEntriesByTopicsAndMood()
     }
 
 

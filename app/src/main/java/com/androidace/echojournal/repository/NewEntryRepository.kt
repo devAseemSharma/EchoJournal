@@ -53,7 +53,6 @@ class NewEntryRepository @Inject constructor(
                 newEntryDao.getNewEntriesByAllTopicsSorted(topics.map { it.topicId }, topics.size)
             entries.map { it.toTimelineEntry() }
         }
-
     }
 
 
